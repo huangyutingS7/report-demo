@@ -1,0 +1,2011 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>綠洲計畫 - 互動關卡地圖（1~5關完整整合版 v7）</title>
+
+  <!-- Tailwind -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <style>
+    * { box-sizing: border-box; }
+    body { font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+
+    .glass { background: rgba(255,255,255,.78); backdrop-filter: blur(10px); }
+    .shadow-soft { box-shadow: 0 10px 35px rgba(0,0,0,.10); }
+    .card-hover { transition: transform .15s ease, box-shadow .15s ease; }
+    .card-hover:hover { transform: translateY(-2px); box-shadow: 0 10px 25px rgba(0,0,0,.12); }
+
+    #modal { z-index: 9999; }
+    #ledgerModal { z-index: 10050; }
+    #jumpOverlay { z-index: 10100; }
+    #celebrateOverlay { z-index: 10200; }
+
+    .modal-backdrop { background: rgba(17,24,39,.55); }
+    .pop-overlay { animation: popIn .25s ease both; }
+    @keyframes popIn { from { transform: scale(.98); opacity: .0; } to { transform: scale(1); opacity: 1; } }
+
+    /* coin pop */
+    .coin-pop{
+      position: fixed; right: 18px; top: 58px;
+      z-index: 999999; font-weight: 900; pointer-events: none;
+      animation: coinFly 1s ease forwards;
+      text-shadow: 0 8px 18px rgba(0,0,0,.25);
+    }
+    @keyframes coinFly{
+      0%{ transform: translateY(12px); opacity: 0; }
+      15%{ opacity: 1; }
+      100%{ transform: translateY(-38px); opacity: 0; }
+    }
+
+    /* Stage1 blocks */
+    .blkA { border: 1px solid rgba(16,185,129,.20); background: linear-gradient(180deg, rgba(236,253,245,.9), rgba(255,255,255,.95)); }
+    .blkB { border: 1px solid rgba(14,165,233,.20); background: linear-gradient(180deg, rgba(240,249,255,.95), rgba(255,255,255,.95)); }
+    .blkC { border: 1px solid rgba(245,158,11,.18); background: linear-gradient(180deg, rgba(255,251,235,.95), rgba(255,255,255,.95)); }
+
+    /* 教學卡更有層次 */
+    .teach-card {
+      border: 1px solid rgba(15,23,42,.10);
+      background:
+        radial-gradient(900px 220px at 20% 0%, rgba(16,185,129,.14), transparent 60%),
+        radial-gradient(700px 200px at 90% 20%, rgba(59,130,246,.12), transparent 55%),
+        linear-gradient(180deg, rgba(255,255,255,.98), rgba(248,250,252,.98));
+      position: relative;
+      overflow: hidden;
+    }
+    .teach-card:before{
+      content:"";
+      position:absolute; inset:-40px;
+      background:
+        radial-gradient(200px 200px at 15% 30%, rgba(16,185,129,.10), transparent 65%),
+        radial-gradient(240px 240px at 90% 30%, rgba(245,158,11,.10), transparent 70%);
+      transform: rotate(6deg);
+      pointer-events:none;
+    }
+    .teach-inner{ position:relative; }
+
+    .choice-btn{
+      border: 1px solid rgba(15,23,42,.14);
+      background: linear-gradient(180deg, rgba(255,255,255,.98), rgba(248,250,252,.98));
+      transition: transform .08s ease, box-shadow .12s ease, border-color .12s ease;
+    }
+    .choice-btn:hover{ transform: translateY(-1px); box-shadow: 0 10px 20px rgba(2,6,23,.08); border-color: rgba(15,23,42,.25); }
+    .choice-strong{
+      background: linear-gradient(180deg, rgba(224,231,255,.75), rgba(255,255,255,.98));
+      border-color: rgba(99,102,241,.40);
+    }
+
+    /* Drama */
+    .drama-stage{
+      border: 1px solid rgba(2,132,199,.20);
+      background: radial-gradient(1200px 500px at 50% 0%, rgba(14,165,233,.10), transparent 55%),
+                  linear-gradient(180deg, rgba(240,249,255,.90), rgba(255,255,255,.98));
+    }
+    .actor-card{ border: 1px solid rgba(15,23,42,.10); background: rgba(255,255,255,.85); }
+    .bubble{ border: 1px solid rgba(15,23,42,.12); background: rgba(255,255,255,.92); }
+    .mouth{ transform-origin: center; }
+    .talking .mouth{ animation: mouthTalk .16s ease-in-out infinite; }
+    @keyframes mouthTalk{ 0%,100%{ transform: scaleY(.55);} 50%{ transform: scaleY(1.35);} }
+
+    /* Deal animation (Stage2) */
+    .deal-enter { animation: dealIn .28s ease both; transform-origin: 20% 0%; }
+    @keyframes dealIn {
+      from { transform: translateY(-10px) rotate(-2deg); opacity: 0; }
+      to   { transform: translateY(0px) rotate(0deg); opacity: 1; }
+    }
+
+    header { backdrop-filter: blur(10px); }
+
+    /* Stage1 內的小視窗 */
+    .inner-modal-backdrop{ background: rgba(15,23,42,.45); }
+    .inner-modal { z-index: 999999; }
+
+    /* Stage4 zoom modal */
+    #zoomModal { z-index: 10080; }
+
+    /* ✅ 全任務完成慶祝：生日帽＋絲帶飛落 */
+    #celebrateRain { position:absolute; inset:0; overflow:hidden; pointer-events:none; }
+    .party-item{
+      position:absolute; top:-40px;
+      font-size: 26px;
+      filter: drop-shadow(0 12px 18px rgba(0,0,0,.18));
+      animation: partyFall linear forwards;
+      will-change: transform, opacity;
+      opacity: .95;
+    }
+    @keyframes partyFall{
+      0%   { transform: translateY(-40px) rotate(0deg) scale(.95); opacity: 0; }
+      10%  { opacity: 1; }
+      100% { transform: translateY(120vh) rotate(520deg) scale(1.06); opacity: 1; }
+    }
+  </style>
+</head>
+
+<body class="min-h-screen bg-gradient-to-br from-emerald-50 via-sky-50 to-amber-50">
+
+  <!-- Top Bar -->
+  <header class="w-full px-4 sm:px-6 py-4 sticky top-0 z-[200]">
+    <div class="max-w-6xl mx-auto flex items-center justify-between gap-3">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-2xl bg-emerald-600 flex items-center justify-center text-white font-black shadow-soft">O</div>
+        <div>
+          <div class="font-extrabold text-slate-900 leading-tight">綠洲計畫</div>
+          <div class="text-xs text-slate-600">1~5關｜整合版 v7</div>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-2">
+        <button id="btnReset" class="px-3 py-2 rounded-xl bg-white/80 border border-slate-200 text-slate-700 text-sm font-semibold hover:bg-white shadow-soft">
+          重置進度
+        </button>
+
+        <button id="btnLedgerTop" class="px-3 py-2 rounded-xl bg-white/80 border border-slate-200 text-slate-700 text-sm font-semibold hover:bg-white shadow-soft">
+          帳本
+        </button>
+
+        <div class="px-4 py-2 rounded-2xl bg-white/85 border border-slate-200 shadow-soft flex items-center gap-3">
+          <div class="w-9 h-9 rounded-2xl bg-amber-100 flex items-center justify-center">
+            <span class="text-xl">👛</span>
+          </div>
+          <div class="leading-tight">
+            <div class="text-[11px] text-slate-600 font-semibold">EcoCoin</div>
+            <div class="text-lg font-black text-slate-900"><span id="ecoCoin">0</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main -->
+  <main class="px-4 sm:px-6 pb-10">
+    <div class="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+      <!-- Left -->
+      <section class="lg:col-span-2">
+        <div class="p-5 sm:p-6 rounded-3xl glass border border-white/60 shadow-soft">
+          <div class="flex items-start justify-between gap-3">
+            <div>
+              <h2 class="text-xl sm:text-2xl font-black text-slate-900">關卡地圖</h2>
+              <p class="text-sm text-slate-600 mt-1">第 1 關先建立核心知識，再進入 2~5 關。</p>
+            </div>
+            <div class="text-xs text-slate-600 font-semibold bg-white/70 border border-white/80 px-3 py-2 rounded-xl">
+              進度：<span id="progressText">0/5</span>
+            </div>
+          </div>
+
+          <div class="mt-5 grid grid-cols-1 sm:grid-cols-2 gap-4 items-stretch">
+            <div class="p-4 rounded-2xl bg-white/75 border border-white/80 card-hover flex flex-col h-full">
+
+              <div class="flex items-center justify-between">
+                <div class="font-extrabold text-slate-900">第 1 關｜知識建立＋小劇場＋情境</div>
+                <span id="badge1" class="text-xs px-2 py-1 rounded-full bg-slate-100 text-slate-600 font-bold">未完成</span>
+              </div>
+              <p class="text-sm text-slate-600 mt-2">錢包 / NFT / RWA → 每張卡都要「答一題」確認理解。</p>
+              <button id="lv1" class="mt-3 w-full px-4 py-3 rounded-2xl bg-emerald-600 text-white font-extrabold hover:bg-emerald-700">
+                開始第 1 關
+              </button>
+            </div>
+
+            <div class="p-4 rounded-2xl bg-white/75 border border-white/80 card-hover flex flex-col h-full">
+
+              <div class="flex items-center justify-between">
+                <div class="font-extrabold text-slate-900">第 2 關｜NFT 辨識翻牌（慢慢發牌）</div>
+                <span id="badge2" class="text-xs px-2 py-1 rounded-full bg-slate-100 text-slate-600 font-bold">未解鎖</span>
+              </div>
+              <p class="text-sm text-slate-600 mt-2">（依附圖）每張卡直接寫「是什麼牌」，只有一張可驗證來源。</p>
+              <button id="lv2" class="mt-3 w-full px-4 py-3 rounded-2xl bg-slate-300 text-slate-600 font-extrabold cursor-not-allowed" disabled>
+                需要完成第 1 關
+              </button>
+            </div>
+
+            <div class="p-4 rounded-2xl bg-white/75 border border-white/80 card-hover flex flex-col h-full">
+
+              <div class="flex items-center justify-between">
+                <div class="font-extrabold text-slate-900">第 3 關｜反詐紅旗分類（遊戲）</div>
+                <span id="badge3" class="text-xs px-2 py-1 rounded-full bg-slate-100 text-slate-600 font-bold">未解鎖</span>
+              </div>
+              <p class="text-sm text-slate-600 mt-2">把卡片分到「安全 / 可疑」，全部分對就通關。</p>
+              <button id="lv3" class="mt-3 w-full px-4 py-3 rounded-2xl bg-slate-300 text-slate-600 font-extrabold cursor-not-allowed" disabled>
+                需要完成第 2 關
+              </button>
+            </div>
+
+            <div class="p-4 rounded-2xl bg-white/75 border border-white/80 card-hover flex flex-col h-full">
+
+              <div class="flex items-center justify-between">
+                <div class="font-extrabold text-slate-900">第 4 關｜可疑交易偵測（放大鏡）</div>
+                <span id="badge4" class="text-xs px-2 py-1 rounded-full bg-slate-100 text-slate-600 font-bold">未解鎖</span>
+              </div>
+              <p class="text-sm text-slate-600 mt-2">放大鏡會「跳出可疑細節」→ 你再選最可疑的一筆。</p>
+              <button id="lv4" class="mt-3 w-full px-4 py-3 rounded-2xl bg-slate-300 text-slate-600 font-extrabold cursor-not-allowed" disabled>
+                需要完成第 3 關
+              </button>
+            </div>
+
+            <div class="p-4 rounded-2xl bg-white/75 border border-white/80 card-hover flex flex-col h-full">
+              <div class="flex items-center justify-between">
+                <div class="font-extrabold text-slate-900">第 5 關｜RWA 入門＋分類小遊戲＋兌換</div>
+                <span id="badge5" class="text-xs px-2 py-1 rounded-full bg-slate-100 text-slate-600 font-bold">未解鎖</span>
+              </div>
+              <p class="text-sm text-slate-600 mt-2">（嚴格遵守）通關時加上 YA 音效。</p>
+              <button id="lv5" class="mt-3 w-full px-4 py-3 rounded-2xl bg-slate-300 text-slate-600 font-extrabold cursor-not-allowed" disabled>
+                需要完成第 4 關
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Right -->
+      <aside class="lg:col-span-1">
+        <div class="p-5 sm:p-6 rounded-3xl glass border border-white/60 shadow-soft">
+          <h3 class="text-lg font-black text-slate-900">狀態中心</h3>
+
+          <div class="mt-4 p-4 rounded-2xl bg-white/75 border border-white/80">
+            <div class="flex items-center justify-between">
+              <div class="font-extrabold text-slate-900">Green ID Badge（SBT）</div>
+              <span class="text-xs font-bold px-2 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-100">自動更新</span>
+            </div>
+            <p class="text-sm text-slate-600 mt-2">完成 1~4 關會亮，展示學習進度。</p>
+
+            <div class="mt-3 grid grid-cols-4 gap-2">
+              <div id="sbt1" class="p-2 rounded-xl bg-slate-100 text-center text-xs font-black text-slate-500">1</div>
+              <div id="sbt2" class="p-2 rounded-xl bg-slate-100 text-center text-xs font-black text-slate-500">2</div>
+              <div id="sbt3" class="p-2 rounded-xl bg-slate-100 text-center text-xs font-black text-slate-500">3</div>
+              <div id="sbt4" class="p-2 rounded-xl bg-slate-100 text-center text-xs font-black text-slate-500">4</div>
+            </div>
+          </div>
+
+          <div class="mt-4 p-4 rounded-2xl bg-white/75 border border-white/80">
+            <div class="font-extrabold text-slate-900">提示</div>
+            <p class="text-sm text-slate-600 mt-2">
+              若語音沒聲：先點任意按鈕一次（瀏覽器限制），再到第 1 關右上角按 🔊。
+            </p>
+          </div>
+        </div>
+      </aside>
+
+    </div>
+  </main>
+
+  <!-- Main Modal -->
+  <div id="modal" class="fixed inset-0 hidden items-center justify-center p-4">
+    <div class="absolute inset-0 modal-backdrop"></div>
+    <div class="relative w-full max-w-3xl max-h-[88vh] rounded-3xl bg-white shadow-soft border border-white/60 overflow-hidden flex flex-col pop-overlay">
+      <div class="px-5 sm:px-6 py-4 bg-gradient-to-r from-emerald-600 to-sky-600 text-white">
+        <div class="flex items-start justify-between gap-3">
+          <div>
+            <div id="modalTitle" class="text-lg sm:text-xl font-black">關卡</div>
+            <div id="modalSubtitle" class="text-xs sm:text-sm text-white/90 mt-1">副標</div>
+          </div>
+          <button id="modalClose" class="w-10 h-10 rounded-2xl bg-white/15 hover:bg-white/25 flex items-center justify-center font-black">✕</button>
+        </div>
+      </div>
+
+      <div id="modalBody" class="px-5 sm:px-6 py-5 overflow-y-auto" style="max-height: calc(88vh - 110px);"></div>
+    </div>
+  </div>
+
+  <!-- Ledger Modal -->
+  <div id="ledgerModal" class="fixed inset-0 hidden items-center justify-center p-4">
+    <div class="absolute inset-0 modal-backdrop"></div>
+    <div class="relative w-full max-w-3xl rounded-3xl bg-white shadow-soft border border-white/60 overflow-hidden pop-overlay">
+      <div class="px-5 sm:px-6 py-4 bg-slate-900 text-white">
+        <div class="flex items-start justify-between gap-3">
+          <div>
+            <div class="text-lg font-black">Ledger 快速查看</div>
+            <div class="text-xs text-white/80 mt-1">tx 串、hash 鏈與驗證結果</div>
+          </div>
+          <button id="ledgerClose" class="w-10 h-10 rounded-2xl bg-white/10 hover:bg-white/15 flex items-center justify-center font-black">✕</button>
+        </div>
+      </div>
+      <div class="p-5 sm:px-6">
+        <div class="flex items-center justify-between gap-2">
+          <div class="text-sm text-slate-600">
+            Tx 數：<span id="ledgerTxCount" class="font-black text-slate-900">0</span>｜
+            驗證：<span id="ledgerVerify" class="font-black text-emerald-700">OK</span>
+          </div>
+          <div class="flex gap-2">
+            <button id="ledgerReverify" class="px-3 py-2 rounded-xl bg-emerald-600 text-white font-extrabold hover:bg-emerald-700">
+              重新驗證
+            </button>
+            <button id="btnTamperTop" class="px-3 py-2 rounded-xl bg-white border border-slate-200 text-slate-700 font-extrabold hover:bg-white">
+              模擬竄改
+            </button>
+          </div>
+        </div>
+
+        <div class="mt-4 max-h-[360px] overflow-auto rounded-2xl border border-slate-200 bg-slate-50 p-3">
+          <pre id="ledgerJson" class="text-xs text-slate-800 whitespace-pre-wrap"></pre>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Jump Overlay -->
+  <div id="jumpOverlay" class="fixed inset-0 hidden items-center justify-center p-6">
+    <div class="absolute inset-0 modal-backdrop"></div>
+    <div class="relative w-full max-w-lg rounded-3xl bg-white border border-slate-200 shadow-soft p-6 pop-overlay">
+      <div class="flex items-center gap-4">
+        <div class="w-16 h-16 rounded-3xl bg-amber-100 flex items-center justify-center text-3xl">🧭</div>
+        <div>
+          <div id="jumpTitle" class="text-lg font-black text-slate-900">做得好！</div>
+          <div id="jumpSub" class="text-sm text-slate-600 mt-1">你可以看完再繼續</div>
+        </div>
+      </div>
+
+      <div class="mt-4 bg-emerald-50 border border-emerald-100 rounded-2xl p-4">
+        <div class="text-sm font-extrabold text-slate-900">學習成果卡</div>
+        <div id="jumpLearn" class="text-sm text-slate-800 mt-2 leading-relaxed"></div>
+      </div>
+
+      <div class="mt-3 bg-slate-50 border border-slate-200 rounded-2xl p-4">
+        <div class="text-sm font-extrabold text-slate-900">小提醒</div>
+        <div id="jumpTip" class="text-sm text-slate-700 mt-1">提示文字</div>
+      </div>
+
+      <button id="jumpGo" class="mt-4 w-full px-4 py-3 rounded-2xl bg-slate-900 text-white font-extrabold hover:bg-slate-800">
+        繼續
+      </button>
+    </div>
+  </div>
+
+  <!-- ✅ Celebrate Overlay -->
+  <div id="celebrateOverlay" class="fixed inset-0 hidden items-center justify-center p-6">
+    <div class="absolute inset-0 modal-backdrop"></div>
+    <div id="celebrateRain"></div>
+
+    <div class="relative w-full max-w-xl rounded-3xl bg-white border border-slate-200 shadow-soft p-6 pop-overlay">
+      <div class="flex items-start justify-between gap-3">
+        <div class="flex items-center gap-3">
+          <div class="w-14 h-14 rounded-3xl bg-amber-100 flex items-center justify-center text-3xl">🥳</div>
+          <div>
+            <div class="text-xl font-black text-slate-900">恭喜你完成所有任務！</div>
+            <div class="text-sm text-slate-600 mt-1">你已通關 1～5 關 ✅</div>
+          </div>
+        </div>
+        <button id="celebrateClose" class="w-10 h-10 rounded-2xl bg-slate-900 text-white font-black hover:bg-slate-800">✕</button>
+      </div>
+
+      <div class="mt-4 p-4 rounded-2xl bg-emerald-50 border border-emerald-100 text-slate-800 text-sm leading-relaxed">
+        太棒了！你已經學會：<br/>
+        <b>錢包</b>（自己掌控授權）、<b>NFT</b>（看來源可驗證）、<b>RWA</b>（真實世界資產/權益憑證）<br/>
+        也能辨識常見詐騙訊號：急迫、先付費、無限額、縮網址。
+      </div>
+
+      <button id="celebrateOk" class="mt-4 w-full px-4 py-3 rounded-2xl bg-emerald-600 text-white font-extrabold hover:bg-emerald-700">
+        我知道了
+      </button>
+    </div>
+  </div>
+
+  <!-- Stage4 Zoom Modal -->
+  <div id="zoomModal" class="fixed inset-0 hidden items-center justify-center p-6">
+    <div class="absolute inset-0 modal-backdrop"></div>
+    <div class="relative w-full max-w-lg rounded-3xl bg-white border border-slate-200 shadow-soft p-5 pop-overlay">
+      <div class="flex items-start justify-between gap-3">
+        <div>
+          <div id="zoomTitle" class="text-lg font-black text-slate-900">放大鏡</div>
+          <div id="zoomSub" class="text-sm text-slate-600 mt-1">可疑細節</div>
+        </div>
+        <button id="zoomClose" class="w-10 h-10 rounded-2xl bg-slate-900 text-white font-black hover:bg-slate-800">✕</button>
+      </div>
+      <div id="zoomBody" class="mt-4 p-4 rounded-2xl bg-slate-50 border border-slate-200 text-slate-800 text-sm leading-relaxed"></div>
+      <button id="zoomOk" class="mt-4 w-full px-4 py-3 rounded-2xl bg-emerald-600 text-white font-extrabold hover:bg-emerald-700">知道了</button>
+    </div>
+  </div>
+
+<script>
+/* =========================
+   Storage / State
+========================= */
+const STORAGE_KEY = "oasis_full_1to5_state_v7";
+const defaultState = () => ({
+  eco: 0,
+  completed: {1:false,2:false,3:false,4:false,5:false},
+  ledger: [],
+  celebratedAllDone: false, // 全通關快樂音效只播一次
+});
+let state = loadState();
+
+function loadState(){
+  try{
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if(!raw) return defaultState();
+    const s = JSON.parse(raw);
+    if(!s || typeof s !== "object") return defaultState();
+    if(typeof s.eco !== "number") s.eco = 0;
+    if(!s.completed) s.completed = {1:false,2:false,3:false,4:false,5:false};
+    if(!Array.isArray(s.ledger)) s.ledger = [];
+    if(typeof s.celebratedAllDone !== "boolean") s.celebratedAllDone = false;
+    return s;
+  }catch(e){ return defaultState(); }
+}
+function saveState(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
+
+/* =========================
+   DOM Helpers
+========================= */
+const $ = (id) => document.getElementById(id);
+function setText(id, t){ $(id).textContent = t; }
+function show(el){ el.classList.remove("hidden"); el.classList.add("flex"); }
+function hide(el){ el.classList.add("hidden"); el.classList.remove("flex"); }
+
+/* =========================
+   Ledger Hash Demo
+========================= */
+function nowTs(){ return new Date().toISOString(); }
+function simpleHash(str){
+  let h = 2166136261;
+  for(let i=0;i<str.length;i++){
+    h ^= str.charCodeAt(i);
+    h += (h<<1) + (h<<4) + (h<<7) + (h<<8) + (h<<24);
+  }
+  return ("00000000" + (h >>> 0).toString(16)).slice(-8);
+}
+function ledgerAdd(type, amount, detail){
+  const i = state.ledger.length;
+  const prevHash = i === 0 ? "GENESIS" : state.ledger[i-1].hash;
+  const ts = nowTs();
+  const payload = `${i}|${ts}|${type}|${amount}|${detail}|${prevHash}`;
+  const hash = simpleHash(payload);
+  state.ledger.push({ i, ts, type, amount, detail, prevHash, hash });
+  saveState();
+}
+function verifyLedger(){
+  const L = state.ledger;
+  for(let i=0;i<L.length;i++){
+    const prevHash = i === 0 ? "GENESIS" : L[i-1].hash;
+    const payload = `${i}|${L[i].ts}|${L[i].type}|${L[i].amount}|${L[i].detail}|${prevHash}`;
+    const expected = simpleHash(payload);
+    if(L[i].prevHash !== prevHash) return false;
+    if(L[i].hash !== expected) return false;
+  }
+  return true;
+}
+
+/* =========================
+   EcoCoin
+========================= */
+function renderEco(){ setText("ecoCoin", String(state.eco)); }
+function coinFly(amount){
+  const el = document.createElement("div");
+  el.className = "coin-pop text-amber-300";
+  el.textContent = `+${amount}`;
+  document.body.appendChild(el);
+  setTimeout(()=> el.remove(), 1100);
+}
+function addEco(amount, detail){
+  state.eco += amount;
+  renderEco();
+  ledgerAdd("ECO_ADD", amount, detail || "reward");
+  coinFly(amount);
+  saveState();
+}
+function spendEco(amount, detail){
+  if(state.eco < amount) return false;
+  state.eco -= amount;
+  renderEco();
+  ledgerAdd("ECO_SPEND", -amount, detail || "redeem");
+  saveState();
+  return true;
+}
+
+/* =========================
+   SFX (WebAudio)
+========================= */
+let audioCtx = null;
+function ensureAudio(){
+  if(!audioCtx){
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if(AC) audioCtx = new AC();
+  }
+  if(audioCtx && audioCtx.state === "suspended"){
+    audioCtx.resume().catch(()=>{});
+  }
+}
+function beep(freq=440, dur=0.08, type="sine", gain=0.06){
+  ensureAudio();
+  if(!audioCtx) return;
+  const o = audioCtx.createOscillator();
+  const g = audioCtx.createGain();
+  o.type = type;
+  o.frequency.value = freq;
+  g.gain.value = gain;
+  o.connect(g); g.connect(audioCtx.destination);
+  o.start();
+  o.stop(audioCtx.currentTime + dur);
+}
+function noiseBurst(dur=0.12, gain=0.05){
+  ensureAudio();
+  if(!audioCtx) return;
+  const bufferSize = Math.floor(audioCtx.sampleRate * dur);
+  const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+  const data = buffer.getChannelData(0);
+  for(let i=0;i<bufferSize;i++){
+    data[i] = (Math.random()*2-1) * (1 - i/bufferSize);
+  }
+  const src = audioCtx.createBufferSource();
+  src.buffer = buffer;
+  const g = audioCtx.createGain();
+  g.gain.value = gain;
+  src.connect(g); g.connect(audioCtx.destination);
+  src.start();
+  src.stop(audioCtx.currentTime + dur);
+}
+function sfxFlip(){ beep(520, .06, "square", .04); beep(740, .05, "square", .03); }
+function sfxBad(){ beep(180, .10, "sawtooth", .05); }
+function sfxGood(){ beep(660, .08, "sine", .06); beep(880, .10, "sine", .05); }
+function sfxLevelUp(){
+  beep(523.25, .08, "sine", .05);
+  setTimeout(()=>beep(659.25, .08, "sine", .05), 90);
+  setTimeout(()=>beep(783.99, .10, "sine", .055), 180);
+  setTimeout(()=>beep(1046.5, .12, "sine", .06), 280);
+}
+function sfxEncourage(){
+  beep(392.0, .07, "sine", .04);
+  setTimeout(()=>beep(440.0, .07, "sine", .04), 110);
+  setTimeout(()=>beep(523.25, .09, "sine", .045), 220);
+}
+/* YA（第五關恭喜音效） */
+function sfxYA(){
+  beep(659.25, .07, "sine", .05);
+  setTimeout(()=>beep(783.99, .07, "sine", .05), 70);
+  setTimeout(()=>beep(987.77, .10, "sine", .055), 140);
+}
+/* 全任務完成：很開心的「耶！」音效 */
+function sfxAllDoneCheer(){
+  const notes = [523.25, 659.25, 783.99, 1046.5, 1318.5];
+  notes.forEach((f, i)=> setTimeout(()=>beep(f, 0.10, "sine", 0.055), i*90));
+  setTimeout(()=>{ beep(1046.5, 0.14, "triangle", 0.06); beep(1318.5, 0.14, "triangle", 0.05); }, 430);
+  setTimeout(()=>noiseBurst(0.10, 0.05), 520);
+  setTimeout(()=>noiseBurst(0.10, 0.05), 650);
+  setTimeout(()=>noiseBurst(0.14, 0.05), 800);
+}
+
+/* =========================
+   TTS
+========================= */
+let SOUND_ON = false;      // 第1關內頁右上角控制
+let ttsVoice = null;
+
+function initTTS(){
+  if(!("speechSynthesis" in window)) return;
+  const pickVoice = () => {
+    const voices = window.speechSynthesis.getVoices() || [];
+    ttsVoice = voices.find(v => v.lang === "zh-TW") || voices.find(v => v.lang && v.lang.startsWith("zh")) || null;
+  };
+  pickVoice();
+  window.speechSynthesis.onvoiceschanged = pickVoice;
+}
+function stopTTS(){
+  if(!("speechSynthesis" in window)) return;
+  window.speechSynthesis.cancel();
+}
+function speakOnce(text, opts={}){
+  if(!SOUND_ON) return null;
+  if(!("speechSynthesis" in window)) return null;
+  stopTTS();
+  const u = new SpeechSynthesisUtterance(text);
+  if(ttsVoice) u.voice = ttsVoice;
+  u.lang = (ttsVoice && ttsVoice.lang) ? ttsVoice.lang : "zh-TW";
+  u.rate = opts.rate ?? 1.02;
+  u.pitch = opts.pitch ?? 1.0;
+  window.speechSynthesis.speak(u);
+  return u;
+}
+initTTS();
+
+/* =========================
+   Modal
+========================= */
+function openModal(title, subtitle){
+  setText("modalTitle", title);
+  setText("modalSubtitle", subtitle || "");
+  $("modalBody").innerHTML = "";
+  show($("modal"));
+}
+function closeModal(){
+  hide($("modal"));
+  stopTTS();
+}
+function bodyHTML(html){ $("modalBody").innerHTML = html; }
+
+/* =========================
+   Unlock / Badges / Buttons
+========================= */
+function setBadge(id, text, cls){
+  const b = $(id);
+  b.textContent = text;
+  b.className = `text-xs px-2 py-1 rounded-full font-bold ${cls}`;
+}
+function setSBT(id, on, icon){
+  const el = $(id);
+  if(on){
+    el.className = "p-2 rounded-xl bg-emerald-600 text-center text-xs font-black text-white";
+    el.textContent = icon;
+  }else{
+    el.className = "p-2 rounded-xl bg-slate-100 text-center text-xs font-black text-slate-500";
+    el.textContent = id.replace("sbt","");
+  }
+}
+function setLevelButton(level, enabled, label){
+  const btn = $("lv"+level);
+  btn.textContent = label;
+  if(enabled){
+    btn.className = "mt-3 w-full px-4 py-3 rounded-2xl bg-emerald-600 text-white font-extrabold hover:bg-emerald-700";
+    btn.disabled = false;
+  }else{
+    btn.className = "mt-3 w-full px-4 py-3 rounded-2xl bg-slate-300 text-slate-600 font-extrabold cursor-not-allowed";
+    btn.disabled = true;
+  }
+}
+function updateBadges(){
+  const c = state.completed;
+  setBadge("badge1", c[1] ? "已完成" : "未完成", c[1] ? "bg-emerald-50 text-emerald-700 border border-emerald-100" : "bg-slate-100 text-slate-600");
+  setBadge("badge2", c[2] ? "已完成" : (c[1] ? "可開始" : "未解鎖"), c[2] ? "bg-emerald-50 text-emerald-700 border border-emerald-100" : (c[1] ? "bg-sky-50 text-sky-700 border border-sky-100" : "bg-slate-100 text-slate-600"));
+  setBadge("badge3", c[3] ? "已完成" : (c[2] ? "可開始" : "未解鎖"), c[3] ? "bg-emerald-50 text-emerald-700 border border-emerald-100" : (c[2] ? "bg-sky-50 text-sky-700 border border-sky-100" : "bg-slate-100 text-slate-600"));
+  setBadge("badge4", c[4] ? "已完成" : (c[3] ? "可開始" : "未解鎖"), c[4] ? "bg-emerald-50 text-emerald-700 border border-emerald-100" : (c[3] ? "bg-sky-50 text-sky-700 border border-sky-100" : "bg-slate-100 text-slate-600"));
+  setBadge("badge5", c[5] ? "已完成" : (c[4] ? "可開始" : "未解鎖"), c[5] ? "bg-emerald-50 text-emerald-700 border border-emerald-100" : (c[4] ? "bg-sky-50 text-sky-700 border border-sky-100" : "bg-slate-100 text-slate-600"));
+
+  setLevelButton(1, true, c[1] ? "已完成（可重玩）" : "開始第 1 關");
+  setLevelButton(2, c[1], c[2] ? "已完成（可重玩）" : "開始第 2 關");
+  setLevelButton(3, c[2], c[3] ? "已完成（可重玩）" : "開始第 3 關");
+  setLevelButton(4, c[3], c[4] ? "已完成（可重玩）" : "開始第 4 關");
+  setLevelButton(5, c[4], c[5] ? "已完成（可重玩）" : "開始第 5 關");
+
+  const doneCount = [1,2,3,4,5].filter(i=>c[i]).length;
+  setText("progressText", `${doneCount}/5`);
+
+  setSBT("sbt1", c[1], "🌱");
+  setSBT("sbt2", c[2], "🥤");
+  setSBT("sbt3", c[3], "🛡️");
+  setSBT("sbt4", c[4], "🔎");
+}
+function markCompleted(level){
+  if(!state.completed[level]){
+    state.completed[level] = true;
+    ledgerAdd("LEVEL_DONE", 0, `level_${level}`);
+    saveState();
+  }
+  updateBadges();
+
+  const allDone = [1,2,3,4,5].every(k => state.completed[k]);
+  if(allDone && !state.celebratedAllDone){
+    state.celebratedAllDone = true;
+    saveState();
+    sfxAllDoneCheer();
+  }
+}
+
+/* =========================
+   成果卡
+========================= */
+const LEARN = {
+  1: [
+    "👛 錢包：你自己掌控授權，不要把密碼交出去。",
+    "🧾 NFT：重點是「來源/合約可驗證」，不是圖片像不像。",
+    "🏠 RWA：把真實世界資產/權益做成可驗證的數位憑證。"
+  ],
+  2: [
+    "🥤 看『牌名』只是提示，真正要確認的是「來源/合約資訊」。",
+    "⚠️ 急迫字眼＋要你先付/先簽，是常見釣魚套路。"
+  ],
+  3: [
+    "🛡️ 紅旗分類：急迫、縮網址、要先付費、要簽名/無限額 → 多半可疑。",
+    "✅ 真的活動通常能在官方社群/官網找到對應公告。"
+  ],
+  4: [
+    "🔎 可疑交易：無限額、陌生網域、急迫字眼、要先付費。",
+    "🧠 放大鏡找出『藏在細節裡』的風險。"
+  ],
+  5: [
+    "🏠 RWA：真實世界的東西用更好管理的方式搬到鏈上。",
+    "🎯 先分清楚是不是 RWA，再談兌換與使用。"
+  ],
+};
+function learnHTML(level){
+  const lines = LEARN[level] || ["完成一關，學會一個概念。"];
+  return `<ul class="list-disc pl-5 space-y-1">${lines.map(x=>`<li>${x}</li>`).join("")}</ul>`;
+}
+
+/* =========================
+   Jump Overlay
+========================= */
+let jumpNextFn = null;
+let jumpAutoTimer = null;
+
+function jumpTo(nextLevel, completedLevel){
+  const tips = {
+    2: "提示：第 2 關每張卡會寫是什麼牌，只有一張可驗證來源。",
+    3: "提示：第 3 關是紅旗分類：安全 / 可疑。",
+    4: "提示：第 4 關先用放大鏡看細節，再選最可疑的一筆。",
+    5: "提示：第 5 關通關會有 YA 音效。"
+  };
+  setText("jumpTitle", `做得好！前往第 ${nextLevel} 關！`);
+  setText("jumpSub", "你可以看完再繼續");
+  $("jumpTip").textContent = tips[nextLevel] || "一起把概念用遊戲學會。";
+  $("jumpLearn").innerHTML = learnHTML(completedLevel || (nextLevel-1));
+  jumpNextFn = ()=> {
+    hide($("jumpOverlay"));
+    const fn = stages[`stage${nextLevel}`];
+    if(fn) fn();
+  };
+  show($("jumpOverlay"));
+  if(jumpAutoTimer) clearTimeout(jumpAutoTimer);
+  jumpAutoTimer = setTimeout(()=>{
+    if(jumpNextFn) jumpNextFn();
+  }, 2600);
+}
+$("jumpGo").addEventListener("click", ()=>{
+  if(jumpAutoTimer) clearTimeout(jumpAutoTimer);
+  if(jumpNextFn) jumpNextFn();
+});
+
+/* =========================
+   ✅ Celebration (birthday hats + ribbons falling)
+========================= */
+let partyTimer = null;
+function clearParty(){
+  const rain = $("celebrateRain");
+  if(rain) rain.innerHTML = "";
+  if(partyTimer) { clearTimeout(partyTimer); partyTimer = null; }
+}
+function openCelebrate(){
+  clearParty();
+  show($("celebrateOverlay"));
+  startPartyRain();
+  // 自動收起（也可手動關）
+  partyTimer = setTimeout(()=> closeCelebrate(), 5200);
+}
+function closeCelebrate(){
+  hide($("celebrateOverlay"));
+  clearParty();
+}
+$("celebrateClose").addEventListener("click", closeCelebrate);
+$("celebrateOk").addEventListener("click", closeCelebrate);
+
+function startPartyRain(){
+  const rain = $("celebrateRain");
+  const emojis = ["🥳","🎉","🎊","🎀","🎈","🎁","🧁"];
+  const count = 46;
+
+  for(let i=0;i<count;i++){
+    const el = document.createElement("div");
+    el.className = "party-item";
+    el.textContent = emojis[Math.floor(Math.random()*emojis.length)];
+
+    const left = Math.random()*100; // %
+    const delay = Math.random()*0.9; // s
+    const dur = 2.8 + Math.random()*2.4; // s
+    const size = 18 + Math.random()*20; // px
+    const drift = (Math.random()*2 - 1) * 120; // px drift via translateX using CSS var
+
+    el.style.left = left + "vw";
+    el.style.animationDuration = dur + "s";
+    el.style.animationDelay = delay + "s";
+    el.style.fontSize = size + "px";
+
+    // 用 inline style 讓每個掉落有點左右飄
+    el.animate(
+      [
+        { transform: `translateY(-40px) translateX(0px) rotate(0deg) scale(.95)`, opacity: 0 },
+        { transform: `translateY(10vh) translateX(${drift*0.25}px) rotate(120deg) scale(1.0)`, opacity: 1, offset: 0.25 },
+        { transform: `translateY(120vh) translateX(${drift}px) rotate(520deg) scale(1.06)`, opacity: 1 }
+      ],
+      { duration: dur*1000, delay: delay*1000, easing: "linear", fill: "forwards" }
+    );
+
+    rain.appendChild(el);
+    // 動畫結束後清掉
+    setTimeout(()=> el.remove(), (dur + delay)*1000 + 200);
+  }
+}
+
+/* =========================
+   Stage1（修改：滑鼠移到「整張卡」任何文字都會有聲音；可隨時🔊/🔇關掉）
+========================= */
+function stage1(){
+  openModal("第 1 關｜先建立知識認知", "完成 3 張卡（每張答一題）＋小劇場播放完＋情境答對 → 前往第 2 關（+80）");
+
+  const cards = [
+    {
+      icon:"👛",
+      title:"加密錢包是什麼？",
+      core:"錢包就像你的數位皮夾：你自己保管，決定要不要授權。",
+      detail:[
+        "你可以把錢包想成「鑰匙＋保險箱」。鑰匙（私鑰/助記詞）只給自己，不給任何人。",
+        "網站跳出簽名/授權視窗時，你是在『同意做一件事』，不是『只是登入』。",
+        "安全原則：看不懂就先拒絕，去官方確認再操作。"
+      ].join("\n"),
+      quiz:{
+        q:"哪一句最正確？",
+        a:[
+          {t:"錢包密碼可以交給網站幫我保管", ok:false},
+          {t:"錢包要自己保管，授權要看清楚", ok:true}
+        ]
+      }
+    },
+    {
+      icon:"🧾",
+      title:"NFT 是什麼？",
+      core:"NFT 不是圖片本身，而是「可驗證來源」的數位憑證。",
+      detail:[
+        "NFT 像「帶序號的證明書」。重點是來源/合約能不能驗證。",
+        "圖片很像不代表是真的，釣魚常用『一樣的圖』騙你點連結。",
+        "安全原則：先看官方來源、合約、網域；不要被『限時』催促。"
+      ].join("\n"),
+      quiz:{
+        q:"判斷 NFT 真假的重點是？",
+        a:[
+          {t:"圖片好不好看", ok:false},
+          {t:"來源/合約能不能驗證", ok:true}
+        ]
+      }
+    },
+    {
+      icon:"🏠",
+      title:"RWA 是什麼？",
+      core:"RWA 是把真實世界的資產/權益，做成可驗證的數位憑證。",
+      detail:[
+        "RWA 可理解為：把『房屋、票券、保固、債券』等真實世界權益，變成更好查驗與管理的憑證。",
+        "它不是要你衝動投資，而是讓流程更清楚、可追蹤。",
+        "安全原則：遇到要你『先付費/先簽名』的陌生連結，一樣先停下來查來源。"
+      ].join("\n"),
+      quiz:{
+        q:"哪個比較像 RWA？",
+        a:[
+          {t:"可驗證的電子門票憑證", ok:true},
+          {t:"陌生人發的限時快領連結", ok:false}
+        ]
+      }
+    },
+  ];
+
+  const dramaLines = [
+    { who:"koko", text:"美美，我看到一個『限時快領』連結，點進去跳出錢包視窗。" },
+    { who:"meimei", text:"先停。它要你同意什麼？有沒有寫無限額？" },
+    { who:"koko", text:"有耶，寫無限額授權，還說比較方便。" },
+    { who:"meimei", text:"那就先拒絕。先關掉、去官方確認再說。" },
+    { who:"koko", text:"好！我懂了：看不懂就先不要簽。" }
+  ];
+
+  bodyHTML(`
+    <!-- 本關內右上角：語音開關（只影響本關；可隨時關掉） -->
+    <div class="flex items-center justify-end">
+      <button id="s1VoiceToggle" class="w-11 h-11 rounded-2xl bg-white border border-slate-200 shadow-soft flex items-center justify-center text-xl"
+        title="語音開關（可隨時關掉）">🔇</button>
+    </div>
+
+    <!-- Block A -->
+    <div class="mt-4 p-4 rounded-2xl blkA">
+      <div class="flex items-center justify-between gap-2">
+        <div class="font-extrabold text-slate-900">區塊 A｜三張知識卡（每張答一題確認理解）</div>
+        <div class="text-xs font-black text-slate-700 bg-white/70 border border-white/80 px-3 py-2 rounded-xl">
+          已完成：<span id="cardOK">0</span>/3
+        </div>
+      </div>
+
+      <div class="mt-3 space-y-3" id="cardsWrap">
+        ${cards.map((c, i)=>`
+          <div id="s1Card${i}" class="p-4 rounded-2xl teach-card card-hover">
+            <div class="teach-inner">
+              <div class="flex items-center gap-2">
+                <div class="w-10 h-10 rounded-2xl bg-emerald-50 border border-emerald-100 flex items-center justify-center text-lg">${c.icon}</div>
+                <div class="font-extrabold text-slate-900">${c.title}</div>
+                <div id="doneDot${i}" class="ml-auto hidden text-sm font-black text-emerald-700">✅ 已懂</div>
+              </div>
+
+              <div class="text-sm text-slate-800 mt-3 leading-relaxed">
+                <span class="font-extrabold text-slate-900">一句話：</span>${c.core}
+              </div>
+
+              <!-- 點我更了解（點擊開詳解；但語音改成整張卡 hover） -->
+              <div class="mt-3 flex justify-center">
+                <button id="more${i}" class="px-3 py-2 rounded-xl bg-white border border-slate-200 text-slate-800 font-extrabold hover:bg-slate-50 shadow-soft text-sm">
+                  點我更了解
+                </button>
+              </div>
+
+              <!-- 必答一題（確保每個人都懂） -->
+              <div class="mt-4 p-3 rounded-2xl bg-white border border-slate-200">
+                <div class="text-sm font-extrabold text-slate-900">${c.quiz.q}</div>
+                <div class="mt-2 grid gap-2">
+                  ${c.quiz.a.map((a, j)=>`
+                    <button data-ci="${i}" data-ai="${j}"
+                      class="w-full text-left p-3 rounded-2xl border border-slate-200 bg-slate-50 hover:bg-white font-semibold text-slate-800">
+                      ${a.t}
+                    </button>
+                  `).join("")}
+                </div>
+                <div id="quizMsg${i}" class="mt-3 hidden p-3 rounded-2xl border text-sm"></div>
+              </div>
+            </div>
+          </div>
+        `).join("")}
+      </div>
+    </div>
+
+    <!-- Block B -->
+    <div class="mt-4 p-4 rounded-2xl blkB">
+      <div class="flex items-center justify-between gap-2">
+        <div class="font-extrabold text-slate-900">區塊 B｜小劇場</div>
+        <!-- ✅ 左右按鈕對齊：固定高度、同一列 -->
+        <div class="flex items-center gap-2">
+          <button id="dramaStart"
+            class="w-12 h-12 rounded-2xl bg-blue-600 border-2 border-white text-white font-black hover:bg-blue-700 text-xl shadow-soft flex items-center justify-center"
+            title="開始">▶️</button>
+          <button id="dramaStop"
+            class="w-12 h-12 rounded-2xl bg-rose-600 border-2 border-white text-white font-black hover:bg-rose-700 text-xl shadow-soft flex items-center justify-center"
+            title="停止">⏹️</button>
+        </div>
+      </div>
+
+      <div class="mt-3 p-4 rounded-2xl drama-stage">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <!-- 美美 -->
+          <div id="actorMei" class="p-4 rounded-2xl actor-card">
+            <div class="flex items-center gap-3">
+              <div class="w-14 h-14 rounded-2xl bg-rose-50 border border-rose-100 flex items-center justify-center overflow-hidden">
+                <svg viewBox="0 0 120 120" class="w-full h-full">
+                  <circle cx="60" cy="44" r="22" fill="#F7D7C4"/>
+                  <path suggests="M38 40c6-18 38-18 44 0" fill="#5B4B3A"/>
+                  <circle cx="52" cy="46" r="3.2" fill="#111827"/>
+                  <circle cx="68" cy="46" r="3.2" fill="#111827"/>
+                  <g class="mouth" id="meiMouth">
+                    <ellipse cx="60" cy="56" rx="7" ry="3.6" fill="#111827"/>
+                    <ellipse cx="60" cy="56.3" rx="6.2" ry="2.8" fill="#FB7185" opacity="0.55"/>
+                  </g>
+                  <path d="M40 74c6-10 34-10 40 0v26H40z" fill="#10B981"/>
+                </svg>
+              </div>
+              <div class="font-extrabold text-slate-900 text-lg">美美</div>
+            </div>
+            <div id="meiBubble" class="mt-3 p-3 rounded-2xl bubble text-sm text-slate-700 leading-relaxed min-h-[74px]">(等待開始)</div>
+          </div>
+
+          <!-- 可可 -->
+          <div id="actorKo" class="p-4 rounded-2xl actor-card">
+            <div class="flex items-center gap-3">
+              <div class="w-14 h-14 rounded-2xl bg-sky-50 border border-sky-100 flex items-center justify-center overflow-hidden">
+                <svg viewBox="0 0 120 120" class="w-full h-full">
+                  <circle cx="60" cy="44" r="22" fill="#F7D7C4"/>
+                  <path d="M36 40c8-20 40-18 48 0" fill="#2F3B4A"/>
+                  <circle cx="52" cy="46" r="3.2" fill="#111827"/>
+                  <circle cx="68" cy="46" r="3.2" fill="#111827"/>
+                  <g class="mouth" id="koMouth">
+                    <ellipse cx="60" cy="56" rx="7" ry="3.6" fill="#111827"/>
+                    <ellipse cx="60" cy="56.3" rx="6.2" ry="2.8" fill="#60A5FA" opacity="0.45"/>
+                  </g>
+                  <path d="M40 74c6-10 34-10 40 0v26H40z" fill="#0EA5E9"/>
+                </svg>
+              </div>
+              <div class="font-extrabold text-slate-900 text-lg">可可</div>
+            </div>
+            <div id="koBubble" class="mt-3 p-3 rounded-2xl bubble text-sm text-slate-700 leading-relaxed min-h-[74px]">(等待開始)</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Block C -->
+    <div class="mt-4 p-4 rounded-2xl blkC">
+      <div class="font-extrabold text-slate-900">區塊 C｜情境選擇</div>
+
+      <div class="mt-3 p-4 rounded-2xl bg-white border border-amber-100">
+        <div class="text-sm font-extrabold text-slate-900">情境</div>
+        <div class="text-sm text-slate-700 mt-2 leading-relaxed">
+          你要領獎勵，點進陌生連結後跳出錢包視窗，還寫「無限額授權」。
+        </div>
+
+        <div class="mt-4 grid gap-3">
+          <button id="s1op0" class="w-full text-left p-4 rounded-2xl choice-btn font-semibold text-slate-800">
+            先同意，反正只是領獎勵
+          </button>
+          <button id="s1op1" class="w-full text-left p-4 rounded-2xl choice-btn choice-strong font-semibold text-slate-900">
+            先拒絕，關掉連結，去官方確認再操作
+          </button>
+        </div>
+
+        <div id="s1feedback" class="mt-4 hidden p-4 rounded-2xl border"></div>
+      </div>
+
+      <div class="mt-4 p-4 rounded-2xl bg-emerald-50 border border-emerald-100">
+        <button id="btnGo2" class="w-full px-4 py-3 rounded-2xl bg-slate-300 text-slate-600 font-extrabold cursor-not-allowed" disabled>
+          尚未解鎖
+        </button>
+      </div>
+    </div>
+
+    <!-- 內嵌彈窗：點我更了解 -->
+    <div id="s1InnerModal" class="fixed inset-0 hidden items-center justify-center p-6 inner-modal">
+      <div class="absolute inset-0 inner-modal-backdrop"></div>
+      <div class="relative w-full max-w-lg rounded-3xl bg-white border border-slate-200 shadow-soft p-5 pop-overlay">
+        <div class="flex items-start justify-between gap-3">
+          <div>
+            <div id="s1InnerTitle" class="text-lg font-black text-slate-900">更詳細說明</div>
+            <div class="text-sm text-slate-600 mt-1">（可選看）</div>
+          </div>
+          <button id="s1InnerClose" class="w-10 h-10 rounded-2xl bg-slate-900 text-white font-black hover:bg-slate-800">✕</button>
+        </div>
+
+        <div id="s1InnerText" class="mt-4 p-4 rounded-2xl bg-emerald-50 border border-emerald-100 text-slate-800 text-sm leading-relaxed whitespace-pre-line"></div>
+
+        <button id="s1InnerOk" class="mt-4 w-full px-4 py-3 rounded-2xl bg-slate-900 text-white font-extrabold hover:bg-slate-800">
+          我看懂了（關閉）
+        </button>
+      </div>
+    </div>
+  `);
+
+  // state
+  let cardDone = [false,false,false];
+  let dramaDone = false;
+  let scenarioPassed = false;
+
+  // Voice toggle (可隨時關掉)
+  const voiceBtn = $("s1VoiceToggle");
+  const renderVoiceIcon = ()=> voiceBtn.textContent = SOUND_ON ? "🔊" : "🔇";
+  renderVoiceIcon();
+  voiceBtn.onclick = ()=>{
+    ensureAudio();
+    SOUND_ON = !SOUND_ON;
+    if(!SOUND_ON) stopTTS();
+    renderVoiceIcon();
+  };
+
+  function updateS1(){
+    setText("cardOK", String(cardDone.filter(Boolean).length));
+    if(cardDone.every(Boolean) && dramaDone && scenarioPassed){
+      const btn = $("btnGo2");
+      btn.disabled = false;
+      btn.className = "w-full px-4 py-3 rounded-2xl bg-emerald-600 text-white font-extrabold hover:bg-emerald-700";
+      btn.textContent = "領取獎勵並前往第 2 關（+80）";
+      btn.onclick = ()=>{
+        addEco(80, "level1_reward");
+        markCompleted(1);
+        closeModal();
+        jumpTo(2, 1);
+      };
+    }
+  }
+
+  // Inner modal for details
+  let currentCardIdx = null;
+  function openInner(i){
+    currentCardIdx = i;
+    $("s1InnerTitle").textContent = cards[i].title + "｜更詳細說明";
+    $("s1InnerText").textContent = cards[i].detail;
+    show($("s1InnerModal"));
+    if(SOUND_ON){
+      speakOnce(cards[i].core, { rate: 1.02, pitch: 1.02 });
+    }
+  }
+  function closeInner(){
+    hide($("s1InnerModal"));
+    stopTTS();
+  }
+  $("s1InnerClose").onclick = closeInner;
+  $("s1InnerOk").onclick = closeInner;
+
+  // ✅ 改：滑鼠移到「整張卡」任何地方（含文字）就朗讀核心；離開就停止
+  cards.forEach((_, i)=>{
+    const cardEl = $("s1Card"+i);
+    const moreBtn = $("more"+i);
+
+    cardEl.addEventListener("mouseenter", ()=>{
+      if(!SOUND_ON) return;
+      // 只要進到卡片就唸核心
+      speakOnce(cards[i].core, { rate: 1.02, pitch: 1.02 });
+    });
+    cardEl.addEventListener("mouseleave", ()=>{
+      stopTTS();
+    });
+
+    // 鍵盤可及性：聚焦到卡內按鈕也能聽到
+    moreBtn.addEventListener("focus", ()=>{
+      if(!SOUND_ON) return;
+      speakOnce(cards[i].core, { rate: 1.02, pitch: 1.02 });
+    });
+    moreBtn.addEventListener("blur", ()=>{
+      stopTTS();
+    });
+
+    // 點擊仍開詳解
+    moreBtn.addEventListener("click", ()=>{
+      stopTTS();
+      openInner(i);
+    });
+  });
+
+  // Quiz handler
+  const cardsWrap = $("cardsWrap");
+  cardsWrap.addEventListener("click", (ev)=>{
+    const btn = ev.target.closest("button[data-ci]");
+    if(!btn) return;
+    const ci = Number(btn.dataset.ci);
+    const ai = Number(btn.dataset.ai);
+    if(cardDone[ci]) return;
+
+    const opt = cards[ci].quiz.a[ai];
+    const msg = $("quizMsg"+ci);
+    msg.classList.remove("hidden");
+
+    if(opt.ok){
+      cardDone[ci] = true;
+      $("doneDot"+ci).classList.remove("hidden");
+      msg.className = "mt-3 p-3 rounded-2xl border text-sm bg-emerald-50 border-emerald-100 text-emerald-800";
+      msg.innerHTML = `<b>✅ 正確！</b> 你已理解這張卡的重點。`;
+      sfxGood();
+      updateS1();
+    }else{
+      msg.className = "mt-3 p-3 rounded-2xl border text-sm bg-sky-50 border-sky-100 text-sky-800";
+      msg.innerHTML = `<b>再想一下</b>：你可以點「點我更了解」看更詳細說明。`;
+      sfxEncourage();
+    }
+  });
+
+  // Drama
+  const actorMei = $("actorMei");
+  const actorKo  = $("actorKo");
+  const meiBubble = $("meiBubble");
+  const koBubble  = $("koBubble");
+  function setTalking(who, on){
+    if(who === "meimei") actorMei.classList.toggle("talking", on);
+    else actorKo.classList.toggle("talking", on);
+  }
+  let dramaIdx = 0;
+  let dramaPlaying = false;
+
+  function dramaResetUI(){
+    meiBubble.textContent = "(等待開始)";
+    koBubble.textContent = "(等待開始)";
+    setTalking("meimei", false);
+    setTalking("koko", false);
+  }
+  function dramaStop(){
+    dramaPlaying = false;
+    stopTTS();
+    setTalking("meimei", false);
+    setTalking("koko", false);
+  }
+  function speakDramaLine(line, onDone){
+    if(!SOUND_ON) { onDone && onDone(); return; }
+    stopTTS();
+
+    const isMei = line.who === "meimei";
+    const pitch = isMei ? 1.25 : 0.40; // 可可更低
+    const rate  = 1.02;
+
+    setTalking("meimei", isMei);
+    setTalking("koko", !isMei);
+
+    if(isMei){
+      meiBubble.textContent = line.text;
+      koBubble.textContent = "";
+    }else{
+      koBubble.textContent = line.text;
+      meiBubble.textContent = "";
+    }
+
+    const u = speakOnce(line.text, { pitch, rate });
+    if(!u) { onDone && onDone(); return; }
+    u.onend = ()=>{
+      setTalking("meimei", false);
+      setTalking("koko", false);
+      onDone && onDone();
+    };
+    u.onerror = ()=>{
+      setTalking("meimei", false);
+      setTalking("koko", false);
+      onDone && onDone();
+    };
+  }
+  function dramaNext(){
+    if(!dramaPlaying) return;
+    if(dramaIdx >= dramaLines.length){
+      dramaPlaying = false;
+      dramaDone = true;
+      updateS1();
+      return;
+    }
+    const line = dramaLines[dramaIdx];
+    speakDramaLine(line, ()=>{
+      dramaIdx++;
+      setTimeout(()=> dramaNext(), 160);
+    });
+  }
+  $("dramaStart").onclick = ()=>{
+    dramaStop();
+    dramaPlaying = true;
+    dramaIdx = 0;
+    dramaResetUI();
+
+    if(!SOUND_ON){
+      const stepText = ()=>{
+        if(!dramaPlaying) return;
+        if(dramaIdx >= dramaLines.length){
+          dramaPlaying = false;
+          dramaDone = true;
+          updateS1();
+          return;
+        }
+        const line = dramaLines[dramaIdx];
+        if(line.who === "meimei"){ meiBubble.textContent = line.text; koBubble.textContent = ""; }
+        else { koBubble.textContent = line.text; meiBubble.textContent = ""; }
+        dramaIdx++;
+        setTimeout(stepText, 900);
+      };
+      stepText();
+      return;
+    }
+    dramaNext();
+  };
+  $("dramaStop").onclick = ()=>{
+    dramaStop();
+    dramaResetUI();
+  };
+
+  // Scenario
+  const feedback = $("s1feedback");
+  function showFeedback(ok, title, msg){
+    feedback.classList.remove("hidden");
+    feedback.className = "mt-4 p-4 rounded-2xl border " + (ok ? "bg-emerald-50 border-emerald-100" : "bg-sky-50 border-sky-100");
+    feedback.innerHTML = `
+      <div class="font-extrabold text-slate-900 text-lg">${title}</div>
+      <div class="text-base text-slate-700 mt-2 leading-relaxed">${msg}</div>
+    `;
+  }
+  $("s1op0").onclick = ()=>{
+    showFeedback(false, "再試一次", "看到無限額授權，先不要同意。先關掉、查來源，再決定。");
+    sfxEncourage();
+    scenarioPassed = false;
+    updateS1();
+  };
+  $("s1op1").onclick = ()=>{
+    showFeedback(true, "做得好！", "你先拒絕並確認來源，是最安全的做法。");
+    sfxLevelUp();
+    scenarioPassed = true;
+    updateS1();
+  };
+
+  updateS1();
+}
+
+/* =========================
+   Stage2（依附圖改：每張卡直接寫是哪種牌；只有一張可驗證來源；玩家點「翻牌」確認）
+   - 其他沒提到的部分嚴格遵守：仍然「慢慢發牌」、仍保留 3 次嘗試與加分流程
+========================= */
+function stage2(){
+  openModal("第 2 關｜NFT 辨識翻牌", "按「發牌」→ 卡片一張一張出現。找出可驗證來源那張（+60）");
+
+  bodyHTML(`
+    <div class="p-4 rounded-2xl bg-sky-50 border border-sky-100">
+      <div class="font-extrabold text-slate-900">玩法</div>
+      <div class="mt-2 text-sm text-slate-700 leading-relaxed">
+        按一次「發牌」，會一張一張把 6 張卡發出來。你有 <b>3 次</b>翻牌機會，找出「可驗證來源牌」就過關。
+      </div>
+
+      <!-- ✅ 左右對齊：同一列、垂直置中 -->
+      <div class="mt-3 flex flex-wrap items-center justify-between gap-2">
+        <button id="btnDeal2" class="px-4 py-3 rounded-2xl bg-emerald-600 text-white font-extrabold hover:bg-emerald-700 text-sm">
+          🫳 發牌
+        </button>
+        <div class="text-sm text-slate-700 font-bold">
+          剩餘嘗試：<span id="tries2">3</span>
+        </div>
+      </div>
+    </div>
+
+    <div id="gridWrap2" class="mt-4 hidden">
+      <div class="grid grid-cols-2 sm:grid-cols-3 gap-3" id="grid2"></div>
+      <div class="mt-3 p-4 rounded-2xl bg-white border border-slate-200">
+        <div class="font-extrabold text-slate-900">結果</div>
+        <div id="msg2" class="text-sm text-slate-700 mt-1">請先發牌。</div>
+      </div>
+    </div>
+  `);
+
+  let tries = 3;
+  let playing = false;
+
+  const triesEl = $("tries2");
+  const gridWrap = $("gridWrap2");
+  const grid = $("grid2");
+  const msg = $("msg2");
+
+  function setTries(n){ tries = n; triesEl.textContent = String(n); }
+
+  // ✅ 依附圖：每張卡直接標示「是哪種牌」
+  const deckTypes = [
+    { title:"限時快領牌", hint:"用限時製造急迫", isReal:false },
+    { title:"先付手續費牌", hint:"要你先付小額費用", isReal:false },
+    { title:"只有圖片牌", hint:"只有圖片，沒有來源", isReal:false },
+    { title:"縮網址牌", hint:"縮網址/陌生網址", isReal:false },
+    { title:"先簽才給看牌", hint:"要先簽名/先授權", isReal:false },
+    { title:"可驗證來源牌", hint:"官方來源/合約可驗證", isReal:true },
+  ];
+
+  function shuffle(arr){
+    const a = arr.slice();
+    for(let i=a.length-1;i>0;i--){
+      const j = Math.floor(Math.random()*(i+1));
+      [a[i],a[j]] = [a[j],a[i]];
+    }
+    return a;
+  }
+
+  function buildCard(i, cardDef){
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "p-4 rounded-2xl bg-white border border-slate-200 text-left card-hover deal-enter";
+    btn.dataset.revealed = "0";
+
+    // 初始（未翻牌）
+    btn.innerHTML = `
+      <div class="text-xs font-bold text-slate-500">Card #${i+1}</div>
+      <div class="mt-2">
+        <div class="w-10 h-10 rounded-2xl bg-pink-50 border border-pink-100 flex items-center justify-center">
+          <span class="text-xl">🧾</span>
+        </div>
+      </div>
+
+      <div class="mt-2 font-extrabold text-slate-900 text-lg">${cardDef.title}</div>
+
+      <div class="mt-1 text-sm text-slate-700 leading-relaxed">
+        （未翻牌）提示：${cardDef.hint}
+      </div>
+
+      <div class="mt-3 w-full px-3 py-3 rounded-2xl bg-slate-50 border border-slate-200 text-slate-800 font-extrabold text-center">
+        點擊「翻牌」確認這張是不是來源可驗證
+      </div>
+    `;
+
+    btn.addEventListener("click", ()=>{
+      if(!playing) return;
+      if(tries <= 0) return;
+      if(btn.dataset.revealed === "1") return;
+
+      btn.dataset.revealed = "1";
+      btn.disabled = true;
+      sfxFlip();
+
+      if(cardDef.isReal){
+        playing = false;
+
+        btn.innerHTML = `
+          <div class="text-xs font-bold text-emerald-700">驗證通過</div>
+          <div class="mt-2">
+            <div class="w-10 h-10 rounded-2xl bg-emerald-50 border border-emerald-100 flex items-center justify-center">
+              <span class="text-xl">🥤</span>
+            </div>
+          </div>
+          <div class="mt-2 font-extrabold text-slate-900 text-lg">${cardDef.title}</div>
+          <div class="mt-1 text-sm text-slate-700 leading-relaxed">
+            ✅ 你翻到「官方來源/合約可驗證」的那張！
+          </div>
+          <div class="mt-2 text-xs text-emerald-700 font-bold bg-emerald-50 border border-emerald-100 rounded-xl px-2 py-2">
+            重點：真正要看的是「來源/合約」能不能驗證
+          </div>
+        `;
+
+        msg.innerHTML = `<span class="font-black text-emerald-700">成功！</span>你找到可驗證來源牌（+60）。`;
+        addEco(60, "level2_nft_win");
+        markCompleted(2);
+        setTries(0);
+
+        setTimeout(()=>{
+          closeModal();
+          jumpTo(3, 2);
+        }, 450);
+
+      }else{
+        btn.innerHTML = `
+          <div class="text-xs font-bold text-rose-700">來源不明</div>
+          <div class="mt-2">
+            <div class="w-10 h-10 rounded-2xl bg-rose-50 border border-rose-100 flex items-center justify-center">
+              <span class="text-xl">🖼️</span>
+            </div>
+          </div>
+          <div class="mt-2 font-extrabold text-slate-900 text-lg">${cardDef.title}</div>
+          <div class="mt-1 text-sm text-slate-700 leading-relaxed">
+            ⚠️ 這張是釣魚特徵：${cardDef.hint}
+          </div>
+          <div class="mt-2 text-xs text-sky-700 font-bold bg-sky-50 border border-sky-100 rounded-xl px-2 py-2">
+            提示：要找「可驗證來源牌」
+          </div>
+        `;
+
+        setTries(tries - 1);
+        sfxBad();
+
+        msg.innerHTML = tries > 0
+          ? `<span class="font-black text-rose-700">不是可驗證來源。</span>再找一次（剩 ${tries} 次）。`
+          : `<span class="font-black text-slate-900">機會用完。</span>再按「發牌」重新開始。`;
+
+        if(tries <= 0) playing = false;
+      }
+    });
+
+    return btn;
+  }
+
+  function resetGrid(){
+    const shuffled = shuffle(deckTypes);
+    const cards = [];
+    for(let i=0;i<6;i++){
+      cards.push(buildCard(i, shuffled[i]));
+    }
+    return cards;
+  }
+
+  $("btnDeal2").onclick = ()=>{
+    show(gridWrap);
+    setTries(3);
+    playing = true;
+    msg.textContent = "卡片會一張一張出現，找出「可驗證來源牌」。";
+
+    const cards = resetGrid();
+    grid.innerHTML = "";
+    let idx = 0;
+    const dealNext = ()=>{
+      if(idx >= cards.length) return;
+      sfxFlip();
+      grid.appendChild(cards[idx]);
+      idx++;
+      setTimeout(dealNext, 220);
+    };
+    dealNext();
+  };
+}
+
+/* =========================
+   Stage3（嚴格遵守：不改）
+========================= */
+function stage3(){
+  openModal("第 3 關｜反詐紅旗分類（遊戲）", "把卡片分類到「安全 / 可疑」。全部分類完成即可過關（+80）。");
+
+  const cards = [
+    {
+      title: "官方活動頁面（可在官方社群找到同樣公告）",
+      correct: "safe",
+      why: "✅ 能在官方社群/官網找到同樣公告，來源一致，風險較低。"
+    },
+    {
+      title: "縮網址連結，要求你立刻簽名才能領",
+      correct: "sus",
+      why: "⚠️ 縮網址看不到真正網域＋要你立刻簽名，是常見釣魚套路。"
+    },
+    {
+      title: "授權內容清楚、且只需要限額（非無限額）",
+      correct: "safe",
+      why: "✅ 授權範圍清楚且有限額，風險明顯比無限額低。"
+    },
+    {
+      title: "跳出視窗寫「Approve unlimited spend（無限額）」",
+      correct: "sus",
+      why: "⚠️ 無限額授權風險最高，可能被直接拿走資產操作權限。"
+    },
+    {
+      title: "要你先付小額手續費才給你看獎勵/領空投",
+      correct: "sus",
+      why: "⚠️ 先收小額費用常是詐騙開頭，容易越陷越深。"
+    },
+    {
+      title: "網址與你平常使用的官方網域一致（無奇怪拼字）",
+      correct: "safe",
+      why: "✅ 網域一致且無怪拼字，相對安全（仍建議再對照官方公告）。"
+    },
+  ];
+
+  bodyHTML(`
+    <div class="p-4 rounded-2xl bg-amber-50 border border-amber-100">
+      <div class="font-extrabold text-slate-900">任務</div>
+      <div class="text-sm text-slate-700 mt-2">
+        把每張卡分類到「安全 / 可疑」。分類完會立即告訴你對不對。
+      </div>
+    </div>
+
+    <div class="mt-4 space-y-3" id="s3List"></div>
+
+    <div class="mt-4 p-4 rounded-2xl bg-emerald-50 border border-emerald-100">
+      <button id="btnFinish3" class="w-full px-4 py-3 rounded-2xl bg-slate-300 text-slate-600 font-extrabold cursor-not-allowed" disabled>
+        尚未完成
+      </button>
+    </div>
+
+    <div class="mt-3 flex justify-end">
+      <button id="s3Reset" class="px-3 py-2 rounded-xl bg-white border border-slate-200 text-slate-700 font-extrabold hover:bg-white">
+        重來
+      </button>
+    </div>
+  `);
+
+  const list = $("s3List");
+  let done = Array(cards.length).fill(false);
+
+  function badgeHTML(status){
+    if(status === "done"){
+      return `<span class="text-xs font-bold px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-100">✅ 已完成</span>`;
+    }
+    return `<span class="text-xs font-bold px-3 py-1 rounded-full bg-slate-100 text-slate-600 border border-slate-200">尚未分類</span>`;
+  }
+
+  function render(){
+    list.innerHTML = "";
+    cards.forEach((c, idx)=>{
+      const wrap = document.createElement("div");
+      wrap.className = "p-4 rounded-2xl bg-white border border-slate-200";
+      wrap.innerHTML = `
+        <div class="flex items-start justify-between gap-3">
+          <div class="font-extrabold text-slate-900">${c.title}</div>
+          <div id="s3Badge${idx}">${badgeHTML(done[idx] ? "done" : "new")}</div>
+        </div>
+
+        <div class="mt-3 grid grid-cols-2 gap-3">
+          <button data-idx="${idx}" data-pick="safe"
+            class="w-full py-4 rounded-2xl bg-emerald-600 text-white font-extrabold hover:bg-emerald-700 flex items-center justify-center gap-2">
+            <span class="text-lg">✅</span><span class="text-lg">安全</span>
+          </button>
+          <button data-idx="${idx}" data-pick="sus"
+            class="w-full py-4 rounded-2xl bg-rose-600 text-white font-extrabold hover:bg-rose-700 flex items-center justify-center gap-2">
+            <span class="text-lg">⚠️</span><span class="text-lg">可疑</span>
+          </button>
+        </div>
+
+        <div id="s3Hint${idx}" class="mt-3 hidden p-4 rounded-2xl border text-sm"></div>
+      `;
+      list.appendChild(wrap);
+
+      if(done[idx]){
+        wrap.querySelectorAll("button[data-idx]").forEach(b=>{
+          b.disabled = true;
+          b.className += " opacity-70 cursor-not-allowed";
+        });
+      }
+    });
+
+    if(done.every(Boolean)){
+      const fin = $("btnFinish3");
+      fin.disabled = false;
+      fin.className = "w-full px-4 py-3 rounded-2xl bg-emerald-600 text-white font-extrabold hover:bg-emerald-700";
+      fin.textContent = "通關（領取 +80）→ 前往第 4 關";
+      fin.onclick = ()=>{
+        addEco(80, "level3_reward");
+        markCompleted(3);
+        closeModal();
+        jumpTo(4, 3);
+      };
+    }
+  }
+
+  function showHint(idx, ok, text){
+    const box = $("s3Hint"+idx);
+    box.classList.remove("hidden");
+    box.className = "mt-3 p-4 rounded-2xl border text-sm " + (ok ? "bg-emerald-50 border-emerald-100 text-emerald-800" : "bg-sky-50 border-sky-100 text-sky-800");
+    box.innerHTML = ok ? `<b>✅ 正確！</b> ${text}` : `<b>再想一下：</b> ${text}`;
+  }
+
+  list.addEventListener("click", (ev)=>{
+    const btn = ev.target.closest("button[data-idx]");
+    if(!btn) return;
+    const idx = Number(btn.dataset.idx);
+    if(done[idx]) return;
+
+    const pick = btn.dataset.pick;
+    const ok = pick === cards[idx].correct;
+
+    if(ok){
+      done[idx] = true;
+      sfxGood();
+      showHint(idx, true, cards[idx].why);
+      render();
+    }else{
+      sfxEncourage();
+      showHint(idx, false, cards[idx].why);
+    }
+  });
+
+  $("s3Reset").onclick = ()=>{
+    done = Array(cards.length).fill(false);
+    sfxBad();
+    render();
+  };
+
+  render();
+}
+
+/* =========================
+   Stage4（嚴格遵守：不改）
+========================= */
+function stage4(){
+  openModal("第 4 關｜可疑交易偵測（放大鏡）", "先按 🔍 看細節，再選出『最可疑』的一筆（+40）");
+
+  const txs = [
+    {
+      id:1,
+      title:"EcoCoin 兌換：環保杯",
+      msg:"你主動兌換 → 扣 120 EcoCoin。",
+      zoomTitle:"Tx #1 放大鏡",
+      zoomBody:`這筆是你主動操作，金額固定、流程合理。
+✅ 看起來正常：沒有急迫字眼、沒有無限額授權、沒有陌生網域。`,
+      bad:false
+    },
+    {
+      id:2,
+      title:"App 使用授權",
+      msg:"授權範圍：只讀取必要資訊（限額）。",
+      zoomTitle:"Tx #2 放大鏡",
+      zoomBody:`授權內容有範圍限制，且是必要用途。
+✅ 看起來正常：不是無限額、沒有要你先付費。`,
+      bad:false
+    },
+    {
+      id:3,
+      title:"限時領獎：簽名授權",
+      msg:"顯示：Approve unlimited spend（無限額）",
+      zoomTitle:"Tx #3 放大鏡（最可疑）",
+      zoomBody:`⚠️ 這筆最可疑的地方：
+1) 出現「unlimited / 無限額」授權
+2) 常搭配「限時、快領」等急迫字眼
+3) 你不是主動兌換，卻要授權很大權限
+
+✅ 正確做法：先拒絕 → 去官方來源確認 → 必要才做『限額』授權。`,
+      bad:true
+    },
+    {
+      id:4,
+      title:"朋友分享投票連結",
+      msg:"網域顯示：short.link/xxxx（縮網址）",
+      zoomTitle:"Tx #4 放大鏡",
+      zoomBody:`可疑點：縮網址看不到真正網域，可能導到釣魚站。
+⚠️ 但它的危險程度通常低於「無限額授權」那種直接拿走權限的狀況。
+✅ 做法：先查真正網域、確認官方再點。`,
+      bad:false
+    },
+  ];
+
+  bodyHTML(`
+    <div class="p-4 rounded-2xl bg-slate-50 border border-slate-200">
+      <div class="font-extrabold text-slate-900">任務</div>
+      <div class="text-sm text-slate-700 mt-2">
+        先按每筆的 🔍 看細節提示，再選出「最可疑」的一筆。
+      </div>
+    </div>
+
+    <div class="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3" id="s4Grid"></div>
+
+    <div class="mt-4 p-4 rounded-2xl bg-emerald-50 border border-emerald-100">
+      <button id="btnFinish4" class="w-full px-4 py-3 rounded-2xl bg-slate-300 text-slate-600 font-extrabold cursor-not-allowed" disabled>
+        尚未選出最可疑的一筆
+      </button>
+    </div>
+  `);
+
+  const grid = $("s4Grid");
+  let zoomSeen = new Set();
+
+  function openZoom(t){
+    $("zoomTitle").textContent = t.zoomTitle;
+    $("zoomSub").textContent = "可疑細節（看完再選）";
+    $("zoomBody").textContent = t.zoomBody;
+    show($("zoomModal"));
+    zoomSeen.add(t.id);
+    sfxGood();
+  }
+  $("zoomClose").onclick = ()=> hide($("zoomModal"));
+  $("zoomOk").onclick = ()=> hide($("zoomModal"));
+
+  txs.forEach(t=>{
+    const wrap = document.createElement("div");
+    wrap.className = "p-4 rounded-2xl bg-white border border-slate-200 card-hover";
+
+    wrap.innerHTML = `
+      <div class="flex items-start justify-between gap-3">
+        <div>
+          <div class="text-xs font-bold text-slate-500">Tx #${t.id}</div>
+          <div class="mt-1 font-extrabold text-slate-900">${t.title}</div>
+          <div class="mt-2 text-sm text-slate-700">${t.msg}</div>
+        </div>
+        <button class="w-12 h-12 rounded-2xl bg-slate-900 text-white font-black hover:bg-slate-800 text-xl shadow-soft" data-zoom="${t.id}" title="放大鏡">🔍</button>
+      </div>
+      <button class="mt-3 w-full px-3 py-3 rounded-2xl bg-slate-50 border border-slate-200 text-slate-800 font-extrabold hover:bg-white" data-pick="${t.id}">
+        選這筆
+      </button>
+    `;
+    grid.appendChild(wrap);
+  });
+
+  grid.addEventListener("click", (ev)=>{
+    const zoomBtn = ev.target.closest("button[data-zoom]");
+    if(zoomBtn){
+      const id = Number(zoomBtn.dataset.zoom);
+      const t = txs.find(x=>x.id === id);
+      if(t) openZoom(t);
+      return;
+    }
+
+    const pickBtn = ev.target.closest("button[data-pick]");
+    if(pickBtn){
+      const id = Number(pickBtn.dataset.pick);
+
+      [...grid.children].forEach(c=> c.classList.remove("ring-4","ring-emerald-200"));
+      pickBtn.closest("div").classList.add("ring-4","ring-emerald-200");
+
+      const fin = $("btnFinish4");
+      const picked = txs.find(x=>x.id === id);
+
+      if(!zoomSeen.has(id)){
+        sfxBad();
+        fin.disabled = true;
+        fin.className = "w-full px-4 py-3 rounded-2xl bg-slate-300 text-slate-600 font-extrabold cursor-not-allowed";
+        fin.textContent = "先按這筆的 🔍 看細節，再做選擇";
+        return;
+      }
+
+      if(picked && picked.bad){
+        sfxLevelUp();
+        fin.disabled = false;
+        fin.className = "w-full px-4 py-3 rounded-2xl bg-emerald-600 text-white font-extrabold hover:bg-emerald-700";
+        fin.textContent = "通關（領取 +40）→ 前往第 5 關";
+        fin.onclick = ()=>{
+          addEco(40, "level4_reward");
+          markCompleted(4);
+          closeModal();
+          jumpTo(5, 4);
+        };
+      }else{
+        sfxEncourage();
+        fin.disabled = true;
+        fin.className = "w-full px-4 py-3 rounded-2xl bg-slate-300 text-slate-600 font-extrabold cursor-not-allowed";
+        fin.textContent = "這筆不是『最可疑』，再看看其他放大鏡";
+      }
+    }
+  });
+}
+
+/* =========================
+   Stage5（嚴格遵守：只在最後「完成第5關」按鈕點完後加上慶祝畫面；其餘不改）
+========================= */
+function stage5(){
+  openModal("第 5 關｜RWA 入門＋分類遊戲＋兌換", "完成分類任務，再完成一次兌換，即可過關（+50）");
+
+  bodyHTML(`
+    <div class="p-4 rounded-2xl bg-emerald-50 border border-emerald-100">
+      <div class="font-extrabold text-slate-900">RWA 超白話</div>
+      <div class="mt-2 text-sm text-slate-700 leading-relaxed space-y-1">
+        <div>① RWA 就是「把真實世界的東西（房子、債券、票券…）變成更好管理的數位憑證」。</div>
+        <div>② 重點不是炫技，而是：更好查、可追蹤、流程更清楚。</div>
+        <div>③ 看到陌生連結要你先簽名/先付費，一樣要先停下來查來源。</div>
+      </div>
+    </div>
+
+    <div class="mt-4 p-4 rounded-2xl bg-white border border-slate-200">
+      <div class="flex items-center justify-between">
+        <div class="font-extrabold text-slate-900">分類小遊戲：這個算不算 RWA？</div>
+        <div class="text-sm font-black text-slate-900">正確：<span id="rwaScore">0</span>/6</div>
+      </div>
+      <p class="text-sm text-slate-600 mt-2">每張卡選一次「是 RWA」或「不是 RWA」。</p>
+      <div id="rwaGrid" class="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-3"></div>
+      <div id="rwaHint" class="mt-4 hidden p-4 rounded-2xl border"></div>
+    </div>
+
+    <div class="mt-4 p-4 rounded-2xl bg-amber-50 border border-amber-100">
+      <div class="font-extrabold text-slate-900">兌換任務</div>
+      <div class="text-sm text-slate-700 mt-2">
+        分類達標後，請完成一次兌換（示範扣幣）。<br/>
+        需要 120 EcoCoin（環保杯）。
+      </div>
+
+      <button id="btnRedeem5" class="mt-3 w-full px-4 py-3 rounded-2xl bg-slate-300 text-slate-600 font-extrabold cursor-not-allowed" disabled>
+        需要先完成分類
+      </button>
+
+      <div id="redeemOut" class="mt-3 hidden p-4 rounded-2xl bg-white border border-amber-100 text-sm text-slate-700"></div>
+    </div>
+
+    <div class="mt-4 p-4 rounded-2xl bg-emerald-50 border border-emerald-100">
+      <button id="btnFinish5" class="w-full px-4 py-3 rounded-2xl bg-slate-300 text-slate-600 font-extrabold cursor-not-allowed" disabled>
+        尚未完成
+      </button>
+    </div>
+  `);
+
+  const items = [
+    { title:"房屋產權憑證（可查驗的數位憑證）", isRWA:true, why:"真實世界的資產（房子）→ 做成可查驗的憑證。"},
+    { title:"債券/票券的數位化憑證", isRWA:true, why:"真實世界的金融票券 → 可追蹤的憑證。"},
+    { title:"一張『很漂亮的 JPG 圖片』", isRWA:false, why:"只是圖片，不代表真實世界資產。"},
+    { title:"演唱會實體門票的可驗證電子票", isRWA:true, why:"真實世界票券 → 可驗證、可防偽。"},
+    { title:"陌生人發的『限時快領』連結", isRWA:false, why:"這是情境/連結，不是資產憑證。"},
+    { title:"商品保固/序號的可驗證憑證", isRWA:true, why:"對應真實商品與權益 → 可驗證憑證。"},
+  ];
+
+  let answered = Array(items.length).fill(false);
+  let score = 0;
+
+  function setHint(ok, text){
+    const box = $("rwaHint");
+    box.classList.remove("hidden");
+    box.className = "mt-4 p-4 rounded-2xl border " + (ok ? "bg-emerald-50 border-emerald-100" : "bg-sky-50 border-sky-100");
+    box.innerHTML = `
+      <div class="font-extrabold text-slate-900">${ok ? "答對" : "提醒"}</div>
+      <div class="text-sm text-slate-700 mt-2 leading-relaxed">${text}</div>
+    `;
+  }
+
+  const grid = $("rwaGrid");
+  items.forEach((it, idx)=>{
+    const card = document.createElement("div");
+    card.className = "p-4 rounded-2xl bg-slate-50 border border-slate-200";
+    card.innerHTML = `
+      <div class="font-extrabold text-slate-900">${it.title}</div>
+      <div class="mt-3 grid grid-cols-2 gap-2">
+        <button data-idx="${idx}" data-ans="yes" class="px-3 py-3 rounded-2xl bg-slate-900 text-white font-extrabold hover:bg-slate-800">是 RWA</button>
+        <button data-idx="${idx}" data-ans="no" class="px-3 py-3 rounded-2xl bg-white border border-slate-200 text-slate-700 font-extrabold hover:bg-white">不是 RWA</button>
+      </div>
+      <div id="rwaDone${idx}" class="mt-3 hidden text-sm font-extrabold"></div>
+    `;
+    grid.appendChild(card);
+  });
+
+  grid.addEventListener("click", (e)=>{
+    const btn = e.target.closest("button[data-idx]");
+    if(!btn) return;
+    const idx = Number(btn.dataset.idx);
+    if(answered[idx]) return;
+
+    answered[idx] = true;
+    const chooseYes = btn.dataset.ans === "yes";
+    const ok = chooseYes === items[idx].isRWA;
+
+    const out = $("rwaDone"+idx);
+    out.classList.remove("hidden");
+    out.textContent = ok ? "✅ 正確" : "❗ 再想一下";
+    out.className = ok ? "mt-3 text-sm font-extrabold text-emerald-700" : "mt-3 text-sm font-extrabold text-sky-700";
+
+    btn.parentElement.querySelectorAll("button").forEach(b=>{
+      b.disabled = true;
+      b.className = b.className + " opacity-70 cursor-not-allowed";
+    });
+
+    if(ok){
+      score++;
+      sfxGood();
+      setHint(true, items[idx].why);
+    }else{
+      sfxEncourage();
+      setHint(false, items[idx].why);
+    }
+    setText("rwaScore", String(score));
+
+    const doneCount = answered.filter(Boolean).length;
+    if(doneCount === items.length){
+      const redeemBtn = $("btnRedeem5");
+      if(score >= 5){
+        redeemBtn.disabled = false;
+        redeemBtn.className = "mt-3 w-full px-4 py-3 rounded-2xl bg-slate-900 text-white font-extrabold hover:bg-slate-800";
+        redeemBtn.textContent = "開始兌換（扣 120 EcoCoin）";
+      }else{
+        redeemBtn.disabled = true;
+        redeemBtn.className = "mt-3 w-full px-4 py-3 rounded-2xl bg-slate-300 text-slate-600 font-extrabold cursor-not-allowed";
+        redeemBtn.textContent = "分類分數不足（需要 5/6）";
+      }
+    }
+  });
+
+  let redeemed = false;
+  $("btnRedeem5").onclick = ()=>{
+    const box = $("redeemOut");
+    box.classList.remove("hidden");
+    const ok = spendEco(120, "level5_redeem_ecocup");
+    if(!ok){
+      sfxBad();
+      box.innerHTML = `EcoCoin 不足（需要 120）。你目前是 <b>${state.eco}</b>。回前面關卡拿幣再來。`;
+      return;
+    }
+    sfxLevelUp();
+    box.innerHTML = `兌換成功 ✅ 已扣除 120 EcoCoin（寫入帳本）。`;
+    redeemed = true;
+
+    const finish = $("btnFinish5");
+    finish.disabled = false;
+    finish.className = "w-full px-4 py-3 rounded-2xl bg-emerald-600 text-white font-extrabold hover:bg-emerald-700";
+    finish.textContent = "完成第 5 關（領取 +50）";
+  };
+
+  $("btnFinish5").onclick = ()=>{
+    if(!redeemed) return;
+    addEco(50, "level5_reward");
+    markCompleted(5);
+
+    // 原本就有：YA 音效
+    sfxYA();
+
+    // ✅ 新增：點完之後出現「恭喜完成所有任務」＋生日派對飛落效果
+    closeModal();
+    openCelebrate();
+
+    // 保留原本的跳轉 overlay 行為：這裡改成「不自動跳關」，只讓玩家慶祝完關閉即可
+    // （玩家可按右上角 ✕ 或「我知道了」關閉）
+  };
+}
+
+/* =========================
+   Stage registry
+========================= */
+const stages = { stage1, stage2, stage3, stage4, stage5 };
+
+/* =========================
+   Ledger Modal
+========================= */
+function openLedgerModal(){
+  $("ledgerJson").textContent = JSON.stringify(state.ledger, null, 2);
+  setText("ledgerTxCount", String(state.ledger.length));
+  const ok = verifyLedger();
+  const v = $("ledgerVerify");
+  v.textContent = ok ? "OK" : "FAIL";
+  v.className = ok ? "font-black text-emerald-700" : "font-black text-rose-700";
+  show($("ledgerModal"));
+}
+function closeLedgerModal(){ hide($("ledgerModal")); }
+
+/* =========================
+   Global events
+========================= */
+$("modalClose").addEventListener("click", closeModal);
+$("ledgerClose").addEventListener("click", closeLedgerModal);
+
+$("ledgerReverify").addEventListener("click", ()=>{
+  const ok = verifyLedger();
+  const v = $("ledgerVerify");
+  v.textContent = ok ? "OK" : "FAIL";
+  v.className = ok ? "font-black text-emerald-700" : "font-black text-rose-700";
+  $("ledgerJson").textContent = JSON.stringify(state.ledger, null, 2);
+});
+$("btnLedgerTop").addEventListener("click", openLedgerModal);
+
+$("btnTamperTop").addEventListener("click", ()=>{
+  if(state.ledger.length === 0){
+    alert("目前 ledger 沒資料，先完成前面關卡拿到交易紀錄。");
+    return;
+  }
+  const idx = Math.floor(Math.random() * state.ledger.length);
+  state.ledger[idx].detail = state.ledger[idx].detail + "_TAMPERED";
+  saveState();
+  sfxBad();
+  alert("已模擬竄改其中一筆交易（不重算 hash）。驗證會變 FAIL。");
+  $("ledgerJson").textContent = JSON.stringify(state.ledger, null, 2);
+});
+
+$("btnReset").addEventListener("click", ()=>{
+  stopTTS();
+  if(confirm("確定要重置進度與 EcoCoin 嗎？（會清空本機資料）")){
+    localStorage.removeItem(STORAGE_KEY);
+    state = defaultState();
+    saveState();
+    renderEco();
+    updateBadges();
+    alert("已重置 ✅");
+  }
+});
+
+// Map buttons
+$("lv1").addEventListener("click", ()=> stages.stage1());
+$("lv2").addEventListener("click", ()=>{ if(state.completed[1]) stages.stage2(); });
+$("lv3").addEventListener("click", ()=>{ if(state.completed[2]) stages.stage3(); });
+$("lv4").addEventListener("click", ()=>{ if(state.completed[3]) stages.stage4(); });
+$("lv5").addEventListener("click", ()=>{ if(state.completed[4]) stages.stage5(); });
+
+// unlock audio context on first interaction
+window.addEventListener("pointerdown", ()=>{ ensureAudio(); }, { once:false });
+
+/* =========================
+   Initial render
+========================= */
+renderEco();
+updateBadges();
+</script>
+
+</body>
+</html>

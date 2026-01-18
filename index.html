@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>綠洲計畫 - 互動關卡地圖（1~5關完整整合版 v7）</title>
+  <title>綠洲計畫 Oasis Project（1~5關完整整合版 v8）</title>
 
   <!-- Tailwind -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -18,7 +18,6 @@
     .card-hover:hover { transform: translateY(-2px); box-shadow: 0 10px 25px rgba(0,0,0,.12); }
 
     #modal { z-index: 9999; }
-    #ledgerModal { z-index: 10050; }
     #jumpOverlay { z-index: 10100; }
     #celebrateOverlay { z-index: 10200; }
 
@@ -119,10 +118,96 @@
       10%  { opacity: 1; }
       100% { transform: translateY(120vh) rotate(520deg) scale(1.06); opacity: 1; }
     }
+
+    /* =========================
+       ✅ EcoCup 番外篇：小動畫（僅新增，不影響 1~5 關）
+    ========================= */
+    @keyframes ecocupFadeUp {
+      from { opacity: 0; transform: translateY(10px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes ecocupSlideIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes ecocupPulseOnce {
+      0% { transform: scale(1); }
+      55% { transform: scale(1.06); }
+      100% { transform: scale(1); }
+    }
+
+    .ecocup-card { animation: ecocupFadeUp .35s ease both; }
+    .eco-proto { animation: ecocupSlideIn .28s ease both; }
+
+    .eco-choice{
+      border: 1px solid rgba(15,23,42,.14);
+      background: rgba(255,255,255,.92);
+      transition: transform .08s ease, box-shadow .12s ease, border-color .12s ease, background .12s ease;
+    }
+    .eco-choice:hover{
+      transform: translateY(-1px);
+      box-shadow: 0 10px 22px rgba(2,6,23,.08);
+      border-color: rgba(15,23,42,.22);
+    }
+    .eco-choice:active{ transform: scale(.97); }
+    .eco-choice.selected{
+      background: rgba(16,185,129,.12);
+      border-color: rgba(16,185,129,.45);
+      box-shadow: 0 10px 25px rgba(16,185,129,.10);
+    }
+    .eco-choice.pulse{ animation: ecocupPulseOnce .28s ease; }
+
+    /* ✅ 暱稱開始畫面 */
+    #startOverlay { z-index: 20000; }
+
+    /* ✅（v8新增）Stage1：每張卡左側語音按鈕 */
+    .voice-mini{
+      width: 38px; height: 38px;
+      border-radius: 16px;
+      border: 1px solid rgba(15,23,42,.14);
+      background: rgba(255,255,255,.96);
+      display:flex; align-items:center; justify-content:center;
+      box-shadow: 0 10px 22px rgba(2,6,23,.06);
+      transition: transform .08s ease, box-shadow .12s ease, border-color .12s ease;
+    }
+    .voice-mini:hover{ transform: translateY(-1px); box-shadow: 0 14px 26px rgba(2,6,23,.08); border-color: rgba(15,23,42,.25); }
+    .voice-mini:active{ transform: scale(.98); }
   </style>
 </head>
 
 <body class="min-h-screen bg-gradient-to-br from-emerald-50 via-sky-50 to-amber-50">
+
+  <!-- ✅ Start Overlay：暱稱只輸入一次（之後自動記住） -->
+  <div id="startOverlay" class="fixed inset-0 hidden items-center justify-center p-6">
+    <div class="absolute inset-0 modal-backdrop"></div>
+
+    <div class="relative w-full max-w-xl rounded-3xl bg-white border border-slate-200 shadow-soft p-6 pop-overlay">
+      <div class="flex items-center gap-3">
+        <div class="w-14 h-14 rounded-3xl bg-emerald-600 flex items-center justify-center text-white font-black shadow-soft">O</div>
+        <div>
+          <div class="text-xl font-black text-slate-900">綠洲計畫 Oasis Project</div>
+          <div class="text-sm text-slate-600 mt-1">開始之前，先告訴我你的暱稱 ✨</div>
+        </div>
+      </div>
+
+      <div class="mt-5">
+        <label class="text-sm font-extrabold text-slate-900">你的暱稱</label>
+        <input id="nicknameInput" type="text" class="mt-2 w-full px-4 py-3 rounded-2xl border border-slate-200 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-200"
+          placeholder="例如：小岱 / Coco / Alex（想輸入什麼都可以）" />
+      </div>
+
+      <div class="mt-4 p-4 rounded-2xl bg-emerald-50 border border-emerald-100 text-slate-800">
+        <div class="text-sm font-extrabold">開始 <span id="nickPreview" class="text-emerald-700">冒險者</span>，準備開始你的奇幻冒險吧！</div>
+        <div class="text-xs text-slate-600 mt-1">（只需要輸入一次，之後會自動記住）</div>
+      </div>
+
+      <button id="btnStartGame" class="mt-4 w-full px-4 py-3 rounded-2xl bg-emerald-600 text-white font-extrabold hover:bg-emerald-700">
+        進入遊戲
+      </button>
+
+      <div id="nickErr" class="mt-3 hidden text-sm font-bold text-rose-700"></div>
+    </div>
+  </div>
 
   <!-- Top Bar -->
   <header class="w-full px-4 sm:px-6 py-4 sticky top-0 z-[200]">
@@ -130,19 +215,26 @@
       <div class="flex items-center gap-3">
         <div class="w-10 h-10 rounded-2xl bg-emerald-600 flex items-center justify-center text-white font-black shadow-soft">O</div>
         <div>
-          <div class="font-extrabold text-slate-900 leading-tight">綠洲計畫</div>
+          <div class="font-extrabold text-slate-900 leading-tight">綠洲計畫 Oasis Project</div>
           <div class="text-xs text-slate-600">1~5關｜整合版 v7</div>
         </div>
       </div>
 
       <div class="flex items-center gap-2">
+        <!-- ✅ 顯示暱稱（可更改） -->
+        <div class="px-3 py-2 rounded-2xl bg-white/85 border border-slate-200 shadow-soft flex items-center gap-2">
+          <span class="text-lg">👋</span>
+          <div class="text-sm font-extrabold text-slate-900">你好，<span id="topNick">冒險者</span></div>
+          <button id="btnChangeNick" class="ml-1 px-2 py-1 rounded-xl bg-slate-900 text-white text-xs font-extrabold hover:bg-slate-800">
+            更改
+          </button>
+        </div>
+
         <button id="btnReset" class="px-3 py-2 rounded-xl bg-white/80 border border-slate-200 text-slate-700 text-sm font-semibold hover:bg-white shadow-soft">
           重置進度
         </button>
 
-        <button id="btnLedgerTop" class="px-3 py-2 rounded-xl bg-white/80 border border-slate-200 text-slate-700 text-sm font-semibold hover:bg-white shadow-soft">
-          帳本
-        </button>
+        <!-- ✅ 帳本按鈕已刪除 -->
 
         <div class="px-4 py-2 rounded-2xl bg-white/85 border border-slate-200 shadow-soft flex items-center gap-3">
           <div class="w-9 h-9 rounded-2xl bg-amber-100 flex items-center justify-center">
@@ -260,9 +352,25 @@
           <div class="mt-4 p-4 rounded-2xl bg-white/75 border border-white/80">
             <div class="font-extrabold text-slate-900">提示</div>
             <p class="text-sm text-slate-600 mt-2">
-              若語音沒聲：先點任意按鈕一次（瀏覽器限制），再到第 1 關右上角按 🔊。
+              若語音沒聲：先點任意按鈕一次（瀏覽器限制），再到第 1 關卡片左側按 🔊（預設已開）。
             </p>
           </div>
+
+          <!-- ✅ EcoCup 番外篇入口（右側狀態中心，僅新增） -->
+          <div class="mt-4 p-4 rounded-2xl bg-white/75 border border-white/80 ecocup-card">
+            <div class="flex items-center justify-between gap-2">
+              <div class="font-extrabold text-slate-900">EcoCup｜手提友善設計</div>
+              <span class="text-xs font-bold px-2 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-100">番外篇</span>
+            </div>
+            <p class="text-sm text-slate-600 mt-2">
+              不改你原本五關，只額外展示：如何設計一款「大家都願意方便提在手上」的環保杯。
+            </p>
+            <button id="btnEcoCupIdea"
+              class="mt-3 w-full px-4 py-3 rounded-2xl bg-slate-900 text-white font-extrabold hover:bg-slate-800">
+              看設計原型
+            </button>
+          </div>
+
         </div>
       </aside>
 
@@ -284,42 +392,6 @@
       </div>
 
       <div id="modalBody" class="px-5 sm:px-6 py-5 overflow-y-auto" style="max-height: calc(88vh - 110px);"></div>
-    </div>
-  </div>
-
-  <!-- Ledger Modal -->
-  <div id="ledgerModal" class="fixed inset-0 hidden items-center justify-center p-4">
-    <div class="absolute inset-0 modal-backdrop"></div>
-    <div class="relative w-full max-w-3xl rounded-3xl bg-white shadow-soft border border-white/60 overflow-hidden pop-overlay">
-      <div class="px-5 sm:px-6 py-4 bg-slate-900 text-white">
-        <div class="flex items-start justify-between gap-3">
-          <div>
-            <div class="text-lg font-black">Ledger 快速查看</div>
-            <div class="text-xs text-white/80 mt-1">tx 串、hash 鏈與驗證結果</div>
-          </div>
-          <button id="ledgerClose" class="w-10 h-10 rounded-2xl bg-white/10 hover:bg-white/15 flex items-center justify-center font-black">✕</button>
-        </div>
-      </div>
-      <div class="p-5 sm:px-6">
-        <div class="flex items-center justify-between gap-2">
-          <div class="text-sm text-slate-600">
-            Tx 數：<span id="ledgerTxCount" class="font-black text-slate-900">0</span>｜
-            驗證：<span id="ledgerVerify" class="font-black text-emerald-700">OK</span>
-          </div>
-          <div class="flex gap-2">
-            <button id="ledgerReverify" class="px-3 py-2 rounded-xl bg-emerald-600 text-white font-extrabold hover:bg-emerald-700">
-              重新驗證
-            </button>
-            <button id="btnTamperTop" class="px-3 py-2 rounded-xl bg-white border border-slate-200 text-slate-700 font-extrabold hover:bg-white">
-              模擬竄改
-            </button>
-          </div>
-        </div>
-
-        <div class="mt-4 max-h-[360px] overflow-auto rounded-2xl border border-slate-200 bg-slate-50 p-3">
-          <pre id="ledgerJson" class="text-xs text-slate-800 whitespace-pre-wrap"></pre>
-        </div>
-      </div>
     </div>
   </div>
 
@@ -398,13 +470,55 @@
 
 <script>
 /* =========================
+   ✅ Nickname (input once)
+========================= */
+const NICK_KEY = "oasis_nickname_v1";
+
+function getNick(){
+  const n = localStorage.getItem(NICK_KEY);
+  return (n && n.trim()) ? n.trim() : "";
+}
+function setNick(n){
+  localStorage.setItem(NICK_KEY, (n || "").trim());
+}
+function applyNickToUI(){
+  const n = getNick() || "冒險者";
+  const top = document.getElementById("topNick");
+  if(top) top.textContent = n;
+}
+function showStartOverlay(){
+  const ov = document.getElementById("startOverlay");
+  if(!ov) return;
+  ov.classList.remove("hidden");
+  ov.classList.add("flex");
+
+  const input = document.getElementById("nicknameInput");
+  const prev  = document.getElementById("nickPreview");
+  const err   = document.getElementById("nickErr");
+  if(err){ err.classList.add("hidden"); err.textContent = ""; }
+
+  if(input){
+    input.value = "";
+    input.focus();
+    input.addEventListener("input", ()=>{
+      if(prev) prev.textContent = input.value.trim() || "冒險者";
+    }, { passive:true });
+  }
+}
+function hideStartOverlay(){
+  const ov = document.getElementById("startOverlay");
+  if(!ov) return;
+  ov.classList.add("hidden");
+  ov.classList.remove("flex");
+}
+
+/* =========================
    Storage / State
 ========================= */
 const STORAGE_KEY = "oasis_full_1to5_state_v7";
 const defaultState = () => ({
   eco: 0,
   completed: {1:false,2:false,3:false,4:false,5:false},
-  ledger: [],
   celebratedAllDone: false, // 全通關快樂音效只播一次
 });
 let state = loadState();
@@ -417,7 +531,6 @@ function loadState(){
     if(!s || typeof s !== "object") return defaultState();
     if(typeof s.eco !== "number") s.eco = 0;
     if(!s.completed) s.completed = {1:false,2:false,3:false,4:false,5:false};
-    if(!Array.isArray(s.ledger)) s.ledger = [];
     if(typeof s.celebratedAllDone !== "boolean") s.celebratedAllDone = false;
     return s;
   }catch(e){ return defaultState(); }
@@ -433,39 +546,6 @@ function show(el){ el.classList.remove("hidden"); el.classList.add("flex"); }
 function hide(el){ el.classList.add("hidden"); el.classList.remove("flex"); }
 
 /* =========================
-   Ledger Hash Demo
-========================= */
-function nowTs(){ return new Date().toISOString(); }
-function simpleHash(str){
-  let h = 2166136261;
-  for(let i=0;i<str.length;i++){
-    h ^= str.charCodeAt(i);
-    h += (h<<1) + (h<<4) + (h<<7) + (h<<8) + (h<<24);
-  }
-  return ("00000000" + (h >>> 0).toString(16)).slice(-8);
-}
-function ledgerAdd(type, amount, detail){
-  const i = state.ledger.length;
-  const prevHash = i === 0 ? "GENESIS" : state.ledger[i-1].hash;
-  const ts = nowTs();
-  const payload = `${i}|${ts}|${type}|${amount}|${detail}|${prevHash}`;
-  const hash = simpleHash(payload);
-  state.ledger.push({ i, ts, type, amount, detail, prevHash, hash });
-  saveState();
-}
-function verifyLedger(){
-  const L = state.ledger;
-  for(let i=0;i<L.length;i++){
-    const prevHash = i === 0 ? "GENESIS" : L[i-1].hash;
-    const payload = `${i}|${L[i].ts}|${L[i].type}|${L[i].amount}|${L[i].detail}|${prevHash}`;
-    const expected = simpleHash(payload);
-    if(L[i].prevHash !== prevHash) return false;
-    if(L[i].hash !== expected) return false;
-  }
-  return true;
-}
-
-/* =========================
    EcoCoin
 ========================= */
 function renderEco(){ setText("ecoCoin", String(state.eco)); }
@@ -479,7 +559,6 @@ function coinFly(amount){
 function addEco(amount, detail){
   state.eco += amount;
   renderEco();
-  ledgerAdd("ECO_ADD", amount, detail || "reward");
   coinFly(amount);
   saveState();
 }
@@ -487,7 +566,6 @@ function spendEco(amount, detail){
   if(state.eco < amount) return false;
   state.eco -= amount;
   renderEco();
-  ledgerAdd("ECO_SPEND", -amount, detail || "redeem");
   saveState();
   return true;
 }
@@ -567,7 +645,8 @@ function sfxAllDoneCheer(){
 /* =========================
    TTS
 ========================= */
-let SOUND_ON = false;      // 第1關內頁右上角控制
+/* ✅（v8變更）預設開啟聲音，使用者不需要可再關閉 */
+let SOUND_ON = true;      // 第1關卡片左側控制（取代右上角）
 let ttsVoice = null;
 
 function initTTS(){
@@ -666,7 +745,6 @@ function updateBadges(){
 function markCompleted(level){
   if(!state.completed[level]){
     state.completed[level] = true;
-    ledgerAdd("LEVEL_DONE", 0, `level_${level}`);
     saveState();
   }
   updateBadges();
@@ -689,7 +767,7 @@ const LEARN = {
     "🏠 RWA：把真實世界資產/權益做成可驗證的數位憑證。"
   ],
   2: [
-    "🥤 看『牌名』只是提示，真正要確認的是「來源/合約資訊」。",
+    "🥤 看『牌名』只是提示，真正要在意的是「來源/合約資訊」。",
     "⚠️ 急迫字眼＋要你先付/先簽，是常見釣魚套路。"
   ],
   3: [
@@ -756,7 +834,6 @@ function openCelebrate(){
   clearParty();
   show($("celebrateOverlay"));
   startPartyRain();
-  // 自動收起（也可手動關）
   partyTimer = setTimeout(()=> closeCelebrate(), 5200);
 }
 function closeCelebrate(){
@@ -776,18 +853,17 @@ function startPartyRain(){
     el.className = "party-item";
     el.textContent = emojis[Math.floor(Math.random()*emojis.length)];
 
-    const left = Math.random()*100; // %
-    const delay = Math.random()*0.9; // s
-    const dur = 2.8 + Math.random()*2.4; // s
-    const size = 18 + Math.random()*20; // px
-    const drift = (Math.random()*2 - 1) * 120; // px drift via translateX using CSS var
+    const left = Math.random()*100;
+    const delay = Math.random()*0.9;
+    const dur = 2.8 + Math.random()*2.4;
+    const size = 18 + Math.random()*20;
+    const drift = (Math.random()*2 - 1) * 120;
 
     el.style.left = left + "vw";
     el.style.animationDuration = dur + "s";
     el.style.animationDelay = delay + "s";
     el.style.fontSize = size + "px";
 
-    // 用 inline style 讓每個掉落有點左右飄
     el.animate(
       [
         { transform: `translateY(-40px) translateX(0px) rotate(0deg) scale(.95)`, opacity: 0 },
@@ -798,13 +874,12 @@ function startPartyRain(){
     );
 
     rain.appendChild(el);
-    // 動畫結束後清掉
     setTimeout(()=> el.remove(), (dur + delay)*1000 + 200);
   }
 }
 
 /* =========================
-   Stage1（修改：滑鼠移到「整張卡」任何文字都會有聲音；可隨時🔊/🔇關掉）
+   Stage1
 ========================= */
 function stage1(){
   openModal("第 1 關｜先建立知識認知", "完成 3 張卡（每張答一題）＋小劇場播放完＋情境答對 → 前往第 2 關（+80）");
@@ -872,14 +947,7 @@ function stage1(){
   ];
 
   bodyHTML(`
-    <!-- 本關內右上角：語音開關（只影響本關；可隨時關掉） -->
-    <div class="flex items-center justify-end">
-      <button id="s1VoiceToggle" class="w-11 h-11 rounded-2xl bg-white border border-slate-200 shadow-soft flex items-center justify-center text-xl"
-        title="語音開關（可隨時關掉）">🔇</button>
-    </div>
-
-    <!-- Block A -->
-    <div class="mt-4 p-4 rounded-2xl blkA">
+    <div class="mt-2 p-4 rounded-2xl blkA">
       <div class="flex items-center justify-between gap-2">
         <div class="font-extrabold text-slate-900">區塊 A｜三張知識卡（每張答一題確認理解）</div>
         <div class="text-xs font-black text-slate-700 bg-white/70 border border-white/80 px-3 py-2 rounded-xl">
@@ -892,6 +960,9 @@ function stage1(){
           <div id="s1Card${i}" class="p-4 rounded-2xl teach-card card-hover">
             <div class="teach-inner">
               <div class="flex items-center gap-2">
+                <!-- ✅（v8變更#1）語音圖示移到 👛🧾🏠 左側（取代右上角），預設開 -->
+                <button type="button" class="voice-mini s1VoiceMini" title="語音開關（預設開）">🔊</button>
+
                 <div class="w-10 h-10 rounded-2xl bg-emerald-50 border border-emerald-100 flex items-center justify-center text-lg">${c.icon}</div>
                 <div class="font-extrabold text-slate-900">${c.title}</div>
                 <div id="doneDot${i}" class="ml-auto hidden text-sm font-black text-emerald-700">✅ 已懂</div>
@@ -901,14 +972,12 @@ function stage1(){
                 <span class="font-extrabold text-slate-900">一句話：</span>${c.core}
               </div>
 
-              <!-- 點我更了解（點擊開詳解；但語音改成整張卡 hover） -->
               <div class="mt-3 flex justify-center">
                 <button id="more${i}" class="px-3 py-2 rounded-xl bg-white border border-slate-200 text-slate-800 font-extrabold hover:bg-slate-50 shadow-soft text-sm">
                   點我更了解
                 </button>
               </div>
 
-              <!-- 必答一題（確保每個人都懂） -->
               <div class="mt-4 p-3 rounded-2xl bg-white border border-slate-200">
                 <div class="text-sm font-extrabold text-slate-900">${c.quiz.q}</div>
                 <div class="mt-2 grid gap-2">
@@ -927,24 +996,31 @@ function stage1(){
       </div>
     </div>
 
-    <!-- Block B -->
     <div class="mt-4 p-4 rounded-2xl blkB">
       <div class="flex items-center justify-between gap-2">
         <div class="font-extrabold text-slate-900">區塊 B｜小劇場</div>
-        <!-- ✅ 左右按鈕對齊：固定高度、同一列 -->
-        <div class="flex items-center gap-2">
-          <button id="dramaStart"
-            class="w-12 h-12 rounded-2xl bg-blue-600 border-2 border-white text-white font-black hover:bg-blue-700 text-xl shadow-soft flex items-center justify-center"
-            title="開始">▶️</button>
-          <button id="dramaStop"
-            class="w-12 h-12 rounded-2xl bg-rose-600 border-2 border-white text-white font-black hover:bg-rose-700 text-xl shadow-soft flex items-center justify-center"
-            title="停止">⏹️</button>
+
+        <!-- ✅（v8變更#2）改為「開始/繼續」＋「暫停」並在下方註記名稱與用途 -->
+        <div class="flex items-start gap-2">
+          <div class="flex flex-col items-center">
+            <button id="dramaStart"
+              class="w-12 h-12 rounded-2xl bg-blue-600 border-2 border-white text-white font-black hover:bg-blue-700 text-xl shadow-soft flex items-center justify-center"
+              title="開始 / 繼續">▶️</button>
+            <div class="mt-1 text-[11px] font-black text-slate-700">開始/繼續</div>
+          </div>
+
+          <div class="flex flex-col items-center">
+            <button id="dramaPause"
+              class="w-12 h-12 rounded-2xl bg-amber-500 border-2 border-white text-white font-black hover:bg-amber-600 text-xl shadow-soft flex items-center justify-center"
+              title="暫停">⏸️</button>
+            <div class="mt-1 text-[11px] font-black text-slate-700">暫停</div>
+          </div>
         </div>
       </div>
 
+     
       <div class="mt-3 p-4 rounded-2xl drama-stage">
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <!-- 美美 -->
           <div id="actorMei" class="p-4 rounded-2xl actor-card">
             <div class="flex items-center gap-3">
               <div class="w-14 h-14 rounded-2xl bg-rose-50 border border-rose-100 flex items-center justify-center overflow-hidden">
@@ -965,7 +1041,6 @@ function stage1(){
             <div id="meiBubble" class="mt-3 p-3 rounded-2xl bubble text-sm text-slate-700 leading-relaxed min-h-[74px]">(等待開始)</div>
           </div>
 
-          <!-- 可可 -->
           <div id="actorKo" class="p-4 rounded-2xl actor-card">
             <div class="flex items-center gap-3">
               <div class="w-14 h-14 rounded-2xl bg-sky-50 border border-sky-100 flex items-center justify-center overflow-hidden">
@@ -989,7 +1064,6 @@ function stage1(){
       </div>
     </div>
 
-    <!-- Block C -->
     <div class="mt-4 p-4 rounded-2xl blkC">
       <div class="font-extrabold text-slate-900">區塊 C｜情境選擇</div>
 
@@ -1018,8 +1092,8 @@ function stage1(){
       </div>
     </div>
 
-    <!-- 內嵌彈窗：點我更了解 -->
     <div id="s1InnerModal" class="fixed inset-0 hidden items-center justify-center p-6 inner-modal">
+      <!-- ✅（v8變更#3）點空白處可關閉 -->
       <div class="absolute inset-0 inner-modal-backdrop"></div>
       <div class="relative w-full max-w-lg rounded-3xl bg-white border border-slate-200 shadow-soft p-5 pop-overlay">
         <div class="flex items-start justify-between gap-3">
@@ -1039,21 +1113,36 @@ function stage1(){
     </div>
   `);
 
-  // state
   let cardDone = [false,false,false];
   let dramaDone = false;
   let scenarioPassed = false;
 
-  // Voice toggle (可隨時關掉)
-  const voiceBtn = $("s1VoiceToggle");
-  const renderVoiceIcon = ()=> voiceBtn.textContent = SOUND_ON ? "🔊" : "🔇";
-  renderVoiceIcon();
-  voiceBtn.onclick = ()=>{
+  /* ✅（v8#1）三個語音按鈕同步控制同一個 SOUND_ON */
+  function renderVoiceMinis(){
+    document.querySelectorAll(".s1VoiceMini").forEach(btn=>{
+      btn.textContent = SOUND_ON ? "🔊" : "🔇";
+      btn.setAttribute("aria-pressed", SOUND_ON ? "true" : "false");
+    });
+  }
+  function toggleVoice(){
     ensureAudio();
     SOUND_ON = !SOUND_ON;
-    if(!SOUND_ON) stopTTS();
-    renderVoiceIcon();
-  };
+    if(!SOUND_ON){
+      stopTTS();
+      if("speechSynthesis" in window){ try{ window.speechSynthesis.pause(); }catch(e){} }
+    }else{
+      if("speechSynthesis" in window){ try{ window.speechSynthesis.resume(); }catch(e){} }
+    }
+    renderVoiceMinis();
+  }
+  document.querySelectorAll(".s1VoiceMini").forEach(btn=>{
+    btn.addEventListener("click", (e)=>{
+      e.preventDefault();
+      e.stopPropagation();
+      toggleVoice();
+    });
+  });
+  renderVoiceMinis();
 
   function updateS1(){
     setText("cardOK", String(cardDone.filter(Boolean).length));
@@ -1071,10 +1160,7 @@ function stage1(){
     }
   }
 
-  // Inner modal for details
-  let currentCardIdx = null;
   function openInner(i){
-    currentCardIdx = i;
     $("s1InnerTitle").textContent = cards[i].title + "｜更詳細說明";
     $("s1InnerText").textContent = cards[i].detail;
     show($("s1InnerModal"));
@@ -1089,37 +1175,35 @@ function stage1(){
   $("s1InnerClose").onclick = closeInner;
   $("s1InnerOk").onclick = closeInner;
 
-  // ✅ 改：滑鼠移到「整張卡」任何地方（含文字）就朗讀核心；離開就停止
+  /* ✅（v8#3）點空白處即可關閉 inner modal */
+  $("s1InnerModal").addEventListener("click", (e)=>{
+    if(e.target === $("s1InnerModal") || e.target.classList.contains("inner-modal-backdrop")){
+      closeInner();
+    }
+  });
+
   cards.forEach((_, i)=>{
     const cardEl = $("s1Card"+i);
     const moreBtn = $("more"+i);
 
     cardEl.addEventListener("mouseenter", ()=>{
       if(!SOUND_ON) return;
-      // 只要進到卡片就唸核心
       speakOnce(cards[i].core, { rate: 1.02, pitch: 1.02 });
     });
-    cardEl.addEventListener("mouseleave", ()=>{
-      stopTTS();
-    });
+    cardEl.addEventListener("mouseleave", ()=>{ stopTTS(); });
 
-    // 鍵盤可及性：聚焦到卡內按鈕也能聽到
     moreBtn.addEventListener("focus", ()=>{
       if(!SOUND_ON) return;
       speakOnce(cards[i].core, { rate: 1.02, pitch: 1.02 });
     });
-    moreBtn.addEventListener("blur", ()=>{
-      stopTTS();
-    });
+    moreBtn.addEventListener("blur", ()=>{ stopTTS(); });
 
-    // 點擊仍開詳解
     moreBtn.addEventListener("click", ()=>{
       stopTTS();
       openInner(i);
     });
   });
 
-  // Quiz handler
   const cardsWrap = $("cardsWrap");
   cardsWrap.addEventListener("click", (ev)=>{
     const btn = ev.target.closest("button[data-ci]");
@@ -1146,7 +1230,6 @@ function stage1(){
     }
   });
 
-  // Drama
   const actorMei = $("actorMei");
   const actorKo  = $("actorKo");
   const meiBubble = $("meiBubble");
@@ -1155,8 +1238,15 @@ function stage1(){
     if(who === "meimei") actorMei.classList.toggle("talking", on);
     else actorKo.classList.toggle("talking", on);
   }
+
+  /* ✅（v8#2）小劇場：開始/繼續＋暫停；每句講完才換下一句（維持原規則） */
   let dramaIdx = 0;
   let dramaPlaying = false;
+  let dramaPaused = false;
+  let dramaTimer = null;
+  let dramaNextTimer = null;
+  let lineInProgress = false;
+  let currentWho = null;
 
   function dramaResetUI(){
     meiBubble.textContent = "(等待開始)";
@@ -1164,18 +1254,32 @@ function stage1(){
     setTalking("meimei", false);
     setTalking("koko", false);
   }
-  function dramaStop(){
+  function dramaHardStop(){
     dramaPlaying = false;
+    dramaPaused = false;
+    lineInProgress = false;
+    currentWho = null;
+    if(dramaTimer){ clearTimeout(dramaTimer); dramaTimer = null; }
+    if(dramaNextTimer){ clearTimeout(dramaNextTimer); dramaNextTimer = null; }
     stopTTS();
+    try{
+      if("speechSynthesis" in window){
+        window.speechSynthesis.cancel();
+      }
+    }catch(e){}
     setTalking("meimei", false);
     setTalking("koko", false);
   }
+
   function speakDramaLine(line, onDone){
     if(!SOUND_ON) { onDone && onDone(); return; }
     stopTTS();
+    lineInProgress = true;
+    currentWho = line.who;
 
     const isMei = line.who === "meimei";
-    const pitch = isMei ? 1.25 : 0.40; // 可可更低
+    /* ✅（v8#2）避免「聽不到」：把可可的 pitch 調回正常可聽範圍（不改台詞內容） */
+    const pitch = isMei ? 1.15 : 0.95;
     const rate  = 1.02;
 
     setTalking("meimei", isMei);
@@ -1190,20 +1294,30 @@ function stage1(){
     }
 
     const u = speakOnce(line.text, { pitch, rate });
-    if(!u) { onDone && onDone(); return; }
+    if(!u) {
+      lineInProgress = false;
+      setTalking("meimei", false);
+      setTalking("koko", false);
+      onDone && onDone();
+      return;
+    }
     u.onend = ()=>{
+      lineInProgress = false;
       setTalking("meimei", false);
       setTalking("koko", false);
       onDone && onDone();
     };
     u.onerror = ()=>{
+      lineInProgress = false;
       setTalking("meimei", false);
       setTalking("koko", false);
       onDone && onDone();
     };
   }
+
   function dramaNext(){
-    if(!dramaPlaying) return;
+    if(!dramaPlaying || dramaPaused) return;
+
     if(dramaIdx >= dramaLines.length){
       dramaPlaying = false;
       dramaDone = true;
@@ -1211,20 +1325,46 @@ function stage1(){
       return;
     }
     const line = dramaLines[dramaIdx];
+
     speakDramaLine(line, ()=>{
+      if(!dramaPlaying || dramaPaused) return;
       dramaIdx++;
-      setTimeout(()=> dramaNext(), 160);
+      if(dramaNextTimer) clearTimeout(dramaNextTimer);
+      dramaNextTimer = setTimeout(()=> dramaNext(), 160);
     });
   }
-  $("dramaStart").onclick = ()=>{
-    dramaStop();
+
+  function dramaStartOrResume(){
+    // 如果是暫停狀態 → 繼續
+    if(dramaPaused){
+      dramaPaused = false;
+
+      // 若是 TTS 暫停中，恢復
+      try{
+        if("speechSynthesis" in window && window.speechSynthesis.paused){
+          window.speechSynthesis.resume();
+          if(currentWho){ setTalking("meimei", currentWho==="meimei"); setTalking("koko", currentWho==="koko"); }
+        }
+      }catch(e){}
+
+      // 若剛好在兩句之間（沒有正在講），就繼續下一句
+      if(!lineInProgress){
+        dramaNext();
+      }
+      return;
+    }
+
+    // 不是暫停 → 從頭開始播放
+    dramaHardStop();
     dramaPlaying = true;
+    dramaPaused = false;
     dramaIdx = 0;
     dramaResetUI();
 
     if(!SOUND_ON){
+      // 無聲模式：用文字節奏模擬（每句結束才換下一句）
       const stepText = ()=>{
-        if(!dramaPlaying) return;
+        if(!dramaPlaying || dramaPaused) return;
         if(dramaIdx >= dramaLines.length){
           dramaPlaying = false;
           dramaDone = true;
@@ -1235,19 +1375,38 @@ function stage1(){
         if(line.who === "meimei"){ meiBubble.textContent = line.text; koBubble.textContent = ""; }
         else { koBubble.textContent = line.text; meiBubble.textContent = ""; }
         dramaIdx++;
-        setTimeout(stepText, 900);
+        dramaTimer = setTimeout(stepText, 900);
       };
       stepText();
       return;
     }
-    dramaNext();
-  };
-  $("dramaStop").onclick = ()=>{
-    dramaStop();
-    dramaResetUI();
-  };
 
-  // Scenario
+    dramaNext();
+  }
+
+  function dramaPause(){
+    if(!dramaPlaying) return;
+    dramaPaused = true;
+
+    // 停止下一句排程
+    if(dramaTimer){ clearTimeout(dramaTimer); dramaTimer = null; }
+    if(dramaNextTimer){ clearTimeout(dramaNextTimer); dramaNextTimer = null; }
+
+    // 暫停語音（不取消，才能繼續）
+    try{
+      if("speechSynthesis" in window){
+        window.speechSynthesis.pause();
+      }
+    }catch(e){}
+
+    // 停止嘴巴動畫
+    setTalking("meimei", false);
+    setTalking("koko", false);
+  }
+
+  $("dramaStart").onclick = ()=>{ ensureAudio(); dramaStartOrResume(); };
+  $("dramaPause").onclick = ()=>{ dramaPause(); };
+
   const feedback = $("s1feedback");
   function showFeedback(ok, title, msg){
     feedback.classList.remove("hidden");
@@ -1274,8 +1433,7 @@ function stage1(){
 }
 
 /* =========================
-   Stage2（依附圖改：每張卡直接寫是哪種牌；只有一張可驗證來源；玩家點「翻牌」確認）
-   - 其他沒提到的部分嚴格遵守：仍然「慢慢發牌」、仍保留 3 次嘗試與加分流程
+   Stage2
 ========================= */
 function stage2(){
   openModal("第 2 關｜NFT 辨識翻牌", "按「發牌」→ 卡片一張一張出現。找出可驗證來源那張（+60）");
@@ -1287,7 +1445,6 @@ function stage2(){
         按一次「發牌」，會一張一張把 6 張卡發出來。你有 <b>3 次</b>翻牌機會，找出「可驗證來源牌」就過關。
       </div>
 
-      <!-- ✅ 左右對齊：同一列、垂直置中 -->
       <div class="mt-3 flex flex-wrap items-center justify-between gap-2">
         <button id="btnDeal2" class="px-4 py-3 rounded-2xl bg-emerald-600 text-white font-extrabold hover:bg-emerald-700 text-sm">
           🫳 發牌
@@ -1317,7 +1474,6 @@ function stage2(){
 
   function setTries(n){ tries = n; triesEl.textContent = String(n); }
 
-  // ✅ 依附圖：每張卡直接標示「是哪種牌」
   const deckTypes = [
     { title:"限時快領牌", hint:"用限時製造急迫", isReal:false },
     { title:"先付手續費牌", hint:"要你先付小額費用", isReal:false },
@@ -1342,7 +1498,6 @@ function stage2(){
     btn.className = "p-4 rounded-2xl bg-white border border-slate-200 text-left card-hover deal-enter";
     btn.dataset.revealed = "0";
 
-    // 初始（未翻牌）
     btn.innerHTML = `
       <div class="text-xs font-bold text-slate-500">Card #${i+1}</div>
       <div class="mt-2">
@@ -1467,44 +1622,18 @@ function stage3(){
   openModal("第 3 關｜反詐紅旗分類（遊戲）", "把卡片分類到「安全 / 可疑」。全部分類完成即可過關（+80）。");
 
   const cards = [
-    {
-      title: "官方活動頁面（可在官方社群找到同樣公告）",
-      correct: "safe",
-      why: "✅ 能在官方社群/官網找到同樣公告，來源一致，風險較低。"
-    },
-    {
-      title: "縮網址連結，要求你立刻簽名才能領",
-      correct: "sus",
-      why: "⚠️ 縮網址看不到真正網域＋要你立刻簽名，是常見釣魚套路。"
-    },
-    {
-      title: "授權內容清楚、且只需要限額（非無限額）",
-      correct: "safe",
-      why: "✅ 授權範圍清楚且有限額，風險明顯比無限額低。"
-    },
-    {
-      title: "跳出視窗寫「Approve unlimited spend（無限額）」",
-      correct: "sus",
-      why: "⚠️ 無限額授權風險最高，可能被直接拿走資產操作權限。"
-    },
-    {
-      title: "要你先付小額手續費才給你看獎勵/領空投",
-      correct: "sus",
-      why: "⚠️ 先收小額費用常是詐騙開頭，容易越陷越深。"
-    },
-    {
-      title: "網址與你平常使用的官方網域一致（無奇怪拼字）",
-      correct: "safe",
-      why: "✅ 網域一致且無怪拼字，相對安全（仍建議再對照官方公告）。"
-    },
+    { title: "官方活動頁面（可在官方社群找到同樣公告）", correct: "safe", why: "✅ 能在官方社群/官網找到同樣公告，來源一致，風險較低。" },
+    { title: "縮網址連結，要求你立刻簽名才能領", correct: "sus",  why: "⚠️ 縮網址看不到真正網域＋要你立刻簽名，是常見釣魚套路。" },
+    { title: "授權內容清楚、且只需要限額（非無限額）", correct: "safe", why: "✅ 授權範圍清楚且有限額，風險明顯比無限額低。" },
+    { title: "跳出視窗寫「Approve unlimited spend（無限額）」", correct: "sus",  why: "⚠️ 無限額授權風險最高，可能被直接拿走資產操作權限。" },
+    { title: "要你先付小額手續費才給你看獎勵/領空投", correct: "sus",  why: "⚠️ 先收小額費用常是詐騙開頭，容易越陷越深。" },
+    { title: "網址與你平常使用的官方網域一致（無奇怪拼字）", correct: "safe", why: "✅ 網域一致且無怪拼字，相對安全（仍建議再對照官方公告）。" },
   ];
 
   bodyHTML(`
     <div class="p-4 rounded-2xl bg-amber-50 border border-amber-100">
       <div class="font-extrabold text-slate-900">任務</div>
-      <div class="text-sm text-slate-700 mt-2">
-        把每張卡分類到「安全 / 可疑」。分類完會立即告訴你對不對。
-      </div>
+      <div class="text-sm text-slate-700 mt-2">把每張卡分類到「安全 / 可疑」。分類完會立即告訴你對不對。</div>
     </div>
 
     <div class="mt-4 space-y-3" id="s3List"></div>
@@ -1624,8 +1753,7 @@ function stage4(){
 
   const txs = [
     {
-      id:1,
-      title:"EcoCoin 兌換：環保杯",
+      id:1, title:"EcoCoin 兌換：環保杯",
       msg:"你主動兌換 → 扣 120 EcoCoin。",
       zoomTitle:"Tx #1 放大鏡",
       zoomBody:`這筆是你主動操作，金額固定、流程合理。
@@ -1633,8 +1761,7 @@ function stage4(){
       bad:false
     },
     {
-      id:2,
-      title:"App 使用授權",
+      id:2, title:"App 使用授權",
       msg:"授權範圍：只讀取必要資訊（限額）。",
       zoomTitle:"Tx #2 放大鏡",
       zoomBody:`授權內容有範圍限制，且是必要用途。
@@ -1642,8 +1769,7 @@ function stage4(){
       bad:false
     },
     {
-      id:3,
-      title:"限時領獎：簽名授權",
+      id:3, title:"限時領獎：簽名授權",
       msg:"顯示：Approve unlimited spend（無限額）",
       zoomTitle:"Tx #3 放大鏡（最可疑）",
       zoomBody:`⚠️ 這筆最可疑的地方：
@@ -1655,8 +1781,7 @@ function stage4(){
       bad:true
     },
     {
-      id:4,
-      title:"朋友分享投票連結",
+      id:4, title:"朋友分享投票連結",
       msg:"網域顯示：short.link/xxxx（縮網址）",
       zoomTitle:"Tx #4 放大鏡",
       zoomBody:`可疑點：縮網址看不到真正網域，可能導到釣魚站。
@@ -1696,6 +1821,13 @@ function stage4(){
   }
   $("zoomClose").onclick = ()=> hide($("zoomModal"));
   $("zoomOk").onclick = ()=> hide($("zoomModal"));
+
+  /* ✅（v8#3）點空白處即可關閉放大鏡視窗 */
+  $("zoomModal").addEventListener("click", (e)=>{
+    if(e.target === $("zoomModal") || e.target.classList.contains("modal-backdrop")){
+      hide($("zoomModal"));
+    }
+  });
 
   txs.forEach(t=>{
     const wrap = document.createElement("div");
@@ -1766,7 +1898,7 @@ function stage4(){
 }
 
 /* =========================
-   Stage5（嚴格遵守：只在最後「完成第5關」按鈕點完後加上慶祝畫面；其餘不改）
+   Stage5（嚴格遵守：YA 音效 + 完成後慶祝）
 ========================= */
 function stage5(){
   openModal("第 5 關｜RWA 入門＋分類遊戲＋兌換", "完成分類任務，再完成一次兌換，即可過關（+50）");
@@ -1813,12 +1945,12 @@ function stage5(){
   `);
 
   const items = [
-    { title:"房屋產權憑證（可查驗的數位憑證）", isRWA:true, why:"真實世界的資產（房子）→ 做成可查驗的憑證。"},
-    { title:"債券/票券的數位化憑證", isRWA:true, why:"真實世界的金融票券 → 可追蹤的憑證。"},
-    { title:"一張『很漂亮的 JPG 圖片』", isRWA:false, why:"只是圖片，不代表真實世界資產。"},
-    { title:"演唱會實體門票的可驗證電子票", isRWA:true, why:"真實世界票券 → 可驗證、可防偽。"},
-    { title:"陌生人發的『限時快領』連結", isRWA:false, why:"這是情境/連結，不是資產憑證。"},
-    { title:"商品保固/序號的可驗證憑證", isRWA:true, why:"對應真實商品與權益 → 可驗證憑證。"},
+    { title:"房屋產權憑證（可查驗的數位憑證）", isRWA:true,  why:"真實世界的資產（房子）→ 做成可查驗的憑證。"},
+    { title:"債券/票券的數位化憑證", isRWA:true,          why:"真實世界的金融票券 → 可追蹤的憑證。"},
+    { title:"一張『很漂亮的 JPG 圖片』", isRWA:false,     why:"只是圖片，不代表真實世界資產。"},
+    { title:"演唱會實體門票的可驗證電子票", isRWA:true,   why:"真實世界票券 → 可驗證、可防偽。"},
+    { title:"陌生人發的『限時快領』連結", isRWA:false,     why:"這是情境/連結，不是資產憑證。"},
+    { title:"商品保固/序號的可驗證憑證", isRWA:true,       why:"對應真實商品與權益 → 可驗證憑證。"},
   ];
 
   let answered = Array(items.length).fill(false);
@@ -1905,7 +2037,7 @@ function stage5(){
       return;
     }
     sfxLevelUp();
-    box.innerHTML = `兌換成功 ✅ 已扣除 120 EcoCoin（寫入帳本）。`;
+    box.innerHTML = `兌換成功 ✅ 已扣除 120 EcoCoin。`;
     redeemed = true;
 
     const finish = $("btnFinish5");
@@ -1919,15 +2051,9 @@ function stage5(){
     addEco(50, "level5_reward");
     markCompleted(5);
 
-    // 原本就有：YA 音效
     sfxYA();
-
-    // ✅ 新增：點完之後出現「恭喜完成所有任務」＋生日派對飛落效果
     closeModal();
     openCelebrate();
-
-    // 保留原本的跳轉 overlay 行為：這裡改成「不自動跳關」，只讓玩家慶祝完關閉即可
-    // （玩家可按右上角 ✕ 或「我知道了」關閉）
   };
 }
 
@@ -1937,50 +2063,109 @@ function stage5(){
 const stages = { stage1, stage2, stage3, stage4, stage5 };
 
 /* =========================
-   Ledger Modal
+   ✅ EcoCup 番外篇（僅新增，不影響 1~5 關）
 ========================= */
-function openLedgerModal(){
-  $("ledgerJson").textContent = JSON.stringify(state.ledger, null, 2);
-  setText("ledgerTxCount", String(state.ledger.length));
-  const ok = verifyLedger();
-  const v = $("ledgerVerify");
-  v.textContent = ok ? "OK" : "FAIL";
-  v.className = ok ? "font-black text-emerald-700" : "font-black text-rose-700";
-  show($("ledgerModal"));
+function openEcoCupIdea(){
+  openModal("EcoCup｜手提友善設計", "番外篇：用設計解決『不想帶』的真正原因");
+
+  bodyHTML(`
+    <div id="ecoCupWrap" class="space-y-4">
+      <div class="p-4 rounded-2xl bg-emerald-50 border border-emerald-100 text-slate-800 text-sm leading-relaxed">
+        多數人不帶環保杯不是不環保，而是<strong>拿著麻煩、占空間、怕漏</strong>。
+        我們用 4 個原型把「願意手提」變成真的可以每天用。
+      </div>
+
+      <div class="grid grid-cols-1 gap-3">
+        <div class="p-4 rounded-2xl bg-white border border-slate-200 eco-proto" style="animation-delay: 30ms">
+          <div class="flex items-center gap-2">
+            <div class="w-10 h-10 rounded-2xl bg-emerald-50 border border-emerald-100 flex items-center justify-center text-lg">🪢</div>
+            <div class="font-extrabold text-slate-900">① 手提環杯蓋</div>
+          </div>
+          <div class="text-sm text-slate-700 mt-2 leading-relaxed">
+            杯蓋外圈做柔軟提環（不勒手），走路也能提。<br/>
+            <span class="text-slate-500">為什麼會願意帶：不占手、不用塞包包。</span>
+          </div>
+        </div>
+
+        <div class="p-4 rounded-2xl bg-white border border-slate-200 eco-proto" style="animation-delay: 70ms">
+          <div class="flex items-center gap-2">
+            <div class="w-10 h-10 rounded-2xl bg-sky-50 border border-sky-100 flex items-center justify-center text-lg">🔒</div>
+            <div class="font-extrabold text-slate-900">② 防漏＋單手開</div>
+          </div>
+          <div class="text-sm text-slate-700 mt-2 leading-relaxed">
+            旋轉鎖＋矽膠密封，通勤晃也不滲；單手能開能喝。<br/>
+            <span class="text-slate-500">為什麼會願意帶：漏一次就不想用，先把痛點解掉。</span>
+          </div>
+        </div>
+
+        <div class="p-4 rounded-2xl bg-white border border-slate-200 eco-proto" style="animation-delay: 110ms">
+          <div class="flex items-center gap-2">
+            <div class="w-10 h-10 rounded-2xl bg-amber-50 border border-amber-100 flex items-center justify-center text-lg">🧩</div>
+            <div class="font-extrabold text-slate-900">③ 可折疊／縮短杯身</div>
+          </div>
+          <div class="text-sm text-slate-700 mt-2 leading-relaxed">
+            喝完可縮短高度或折疊收納，空杯也不占空間。<br/>
+            <span class="text-slate-500">為什麼會願意帶：不用為了「空杯」多背一個東西。</span>
+          </div>
+        </div>
+
+        <div class="p-4 rounded-2xl bg-white border border-slate-200 eco-proto" style="animation-delay: 150ms">
+          <div class="flex items-center gap-2">
+            <div class="w-10 h-10 rounded-2xl bg-violet-50 border border-violet-100 flex items-center justify-center text-lg">🧤</div>
+            <div class="font-extrabold text-slate-900">④ 杯套多功能化</div>
+          </div>
+          <div class="text-sm text-slate-700 mt-2 leading-relaxed">
+            杯套＝隔熱＋提把＋好看，讓它更像「願意拿出門」的隨身物。<br/>
+            <span class="text-slate-500">為什麼會願意帶：手感＋外觀一好，就更像日常配件。</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="p-4 rounded-2xl bg-slate-50 border border-slate-200">
+        <div class="font-extrabold text-slate-900">💬 你最想要哪一種設計？（點一下）</div>
+        <div class="mt-3 grid grid-cols-2 sm:grid-cols-4 gap-2">
+          <button class="eco-choice px-3 py-3 rounded-2xl font-extrabold text-slate-800" data-pick="1">① 手提環</button>
+          <button class="eco-choice px-3 py-3 rounded-2xl font-extrabold text-slate-800" data-pick="2">② 防漏</button>
+          <button class="eco-choice px-3 py-3 rounded-2xl font-extrabold text-slate-800" data-pick="3">③ 可折疊</button>
+          <button class="eco-choice px-3 py-3 rounded-2xl font-extrabold text-slate-800" data-pick="4">④ 杯套</button>
+        </div>
+        <div id="ecoVoteMsg" class="mt-3 hidden p-3 rounded-2xl bg-emerald-50 border border-emerald-100 text-sm text-emerald-800"></div>
+      </div>
+
+      <div class="text-xs text-slate-500">
+        報告口條小句：我們不是只喊環保，而是把「願意手提」拆成可落地的設計解法，降低行為門檻。
+      </div>
+    </div>
+  `);
+
+  const wrap = $("ecoCupWrap");
+  const msg = $("ecoVoteMsg");
+  const mapText = { "1":"手提環杯蓋", "2":"防漏＋單手開", "3":"可折疊／縮短", "4":"杯套多功能" };
+
+  wrap.querySelectorAll(".eco-choice").forEach(btn=>{
+    btn.addEventListener("click", ()=>{
+      wrap.querySelectorAll(".eco-choice").forEach(b=>{
+        b.classList.remove("selected","pulse");
+      });
+      btn.classList.add("selected","pulse");
+      setTimeout(()=> btn.classList.remove("pulse"), 320);
+
+      msg.classList.remove("hidden");
+      msg.innerHTML = `你選的是 <b>${mapText[btn.dataset.pick]}</b> ✅（這個原型最能解決「不想帶」的痛點之一）`;
+
+      try { sfxGood(); } catch(e) {}
+    });
+  });
 }
-function closeLedgerModal(){ hide($("ledgerModal")); }
 
 /* =========================
    Global events
 ========================= */
 $("modalClose").addEventListener("click", closeModal);
-$("ledgerClose").addEventListener("click", closeLedgerModal);
-
-$("ledgerReverify").addEventListener("click", ()=>{
-  const ok = verifyLedger();
-  const v = $("ledgerVerify");
-  v.textContent = ok ? "OK" : "FAIL";
-  v.className = ok ? "font-black text-emerald-700" : "font-black text-rose-700";
-  $("ledgerJson").textContent = JSON.stringify(state.ledger, null, 2);
-});
-$("btnLedgerTop").addEventListener("click", openLedgerModal);
-
-$("btnTamperTop").addEventListener("click", ()=>{
-  if(state.ledger.length === 0){
-    alert("目前 ledger 沒資料，先完成前面關卡拿到交易紀錄。");
-    return;
-  }
-  const idx = Math.floor(Math.random() * state.ledger.length);
-  state.ledger[idx].detail = state.ledger[idx].detail + "_TAMPERED";
-  saveState();
-  sfxBad();
-  alert("已模擬竄改其中一筆交易（不重算 hash）。驗證會變 FAIL。");
-  $("ledgerJson").textContent = JSON.stringify(state.ledger, null, 2);
-});
 
 $("btnReset").addEventListener("click", ()=>{
   stopTTS();
-  if(confirm("確定要重置進度與 EcoCoin 嗎？（會清空本機資料）")){
+  if(confirm("確定要重置進度與 EcoCoin 嗎？（不會清除暱稱）")){
     localStorage.removeItem(STORAGE_KEY);
     state = defaultState();
     saveState();
@@ -1997,14 +2182,73 @@ $("lv3").addEventListener("click", ()=>{ if(state.completed[2]) stages.stage3();
 $("lv4").addEventListener("click", ()=>{ if(state.completed[3]) stages.stage4(); });
 $("lv5").addEventListener("click", ()=>{ if(state.completed[4]) stages.stage5(); });
 
+// ✅ EcoCup 入口按鈕（僅新增）
+const ecoBtn = document.getElementById("btnEcoCupIdea");
+if(ecoBtn) ecoBtn.addEventListener("click", openEcoCupIdea);
+
 // unlock audio context on first interaction
 window.addEventListener("pointerdown", ()=>{ ensureAudio(); }, { once:false });
+
+/* =========================
+   ✅ Nick start logic + Change nickname
+========================= */
+const startBtn = document.getElementById("btnStartGame");
+const nickInput = document.getElementById("nicknameInput");
+const nickPrev = document.getElementById("nickPreview");
+const nickErr = document.getElementById("nickErr");
+
+function normalizeNick(s){
+  return (s || "").trim();
+}
+
+if(nickInput && nickPrev){
+  nickInput.addEventListener("input", ()=>{
+    nickPrev.textContent = normalizeNick(nickInput.value) || "冒險者";
+  }, { passive:true });
+}
+
+if(startBtn){
+  startBtn.addEventListener("click", ()=>{
+    ensureAudio();
+    const n = normalizeNick(nickInput ? nickInput.value : "");
+    if(!n){
+      if(nickErr){
+        nickErr.classList.remove("hidden");
+        nickErr.textContent = "請先輸入暱稱再開始～";
+      }
+      sfxEncourage();
+      return;
+    }
+    setNick(n);
+    applyNickToUI();
+    hideStartOverlay();
+    sfxLevelUp();
+  });
+}
+
+const btnChangeNick = document.getElementById("btnChangeNick");
+if(btnChangeNick){
+  btnChangeNick.addEventListener("click", ()=>{
+    ensureAudio();
+    localStorage.removeItem(NICK_KEY);
+    applyNickToUI();
+    showStartOverlay();
+  });
+}
 
 /* =========================
    Initial render
 ========================= */
 renderEco();
 updateBadges();
+applyNickToUI();
+
+// 首次：如果沒有暱稱就要求輸入一次
+if(!getNick()){
+  showStartOverlay();
+} else {
+  hideStartOverlay();
+}
 </script>
 
 </body>

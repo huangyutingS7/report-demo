@@ -172,6 +172,14 @@
     }
     .voice-mini:hover{ transform: translateY(-1px); box-shadow: 0 14px 26px rgba(2,6,23,.08); border-color: rgba(15,23,42,.25); }
     .voice-mini:active{ transform: scale(.98); }
+    /* ✅ 證書列印：只印證書 */
+    @media print{
+    body * { visibility: hidden !important; }
+    #certificateOverlay, #certificateOverlay * { visibility: visible !important; }
+    #certificateOverlay { position: fixed; inset: 0; display:flex !important; }
+    #certificateOverlay > div {page-break-inside: avoid;}
+}
+
   </style>
 </head>
 
@@ -333,6 +341,23 @@
       <aside class="lg:col-span-1">
         <div class="p-5 sm:p-6 rounded-3xl glass border border-white/60 shadow-soft">
           <h3 class="text-lg font-black text-slate-900">狀態中心</h3>
+          <!-- ✅ 5-2 玩家資訊（暱稱衍生，不影響關卡） -->
+        <div class="mt-4 p-4 rounded-2xl bg-white/75 border border-white/80">
+         <div class="font-extrabold text-slate-900">玩家資訊</div>
+
+        <div class="mt-2 text-sm text-slate-700">
+        稱號：
+        <span id="playerTitle" class="font-extrabold text-emerald-700">
+        🌱 新手冒險者
+        </span>
+         </div>
+
+  <div class="mt-1 text-xs text-slate-500">
+    Session ID：
+    <span id="playerSession">—</span>
+  </div>
+</div>
+
 
           <div class="mt-4 p-4 rounded-2xl bg-white/75 border border-white/80">
             <div class="flex items-center justify-between">
@@ -346,30 +371,10 @@
               <div id="sbt2" class="p-2 rounded-xl bg-slate-100 text-center text-xs font-black text-slate-500">2</div>
               <div id="sbt3" class="p-2 rounded-xl bg-slate-100 text-center text-xs font-black text-slate-500">3</div>
               <div id="sbt4" class="p-2 rounded-xl bg-slate-100 text-center text-xs font-black text-slate-500">4</div>
+              <div id="sbt5" class="p-2 rounded-xl bg-slate-100 text-center text-xs font-black text-slate-500">5</div>
             </div>
           </div>
 
-          <div class="mt-4 p-4 rounded-2xl bg-white/75 border border-white/80">
-            <div class="font-extrabold text-slate-900">提示</div>
-            <p class="text-sm text-slate-600 mt-2">
-              若語音沒聲：先點任意按鈕一次（瀏覽器限制），再到第 1 關卡片左側按 🔊（預設已開）。
-            </p>
-          </div>
-
-          <!-- ✅ EcoCup 番外篇入口（右側狀態中心，僅新增） -->
-          <div class="mt-4 p-4 rounded-2xl bg-white/75 border border-white/80 ecocup-card">
-            <div class="flex items-center justify-between gap-2">
-              <div class="font-extrabold text-slate-900">EcoCup｜手提友善設計</div>
-              <span class="text-xs font-bold px-2 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-100">番外篇</span>
-            </div>
-            <p class="text-sm text-slate-600 mt-2">
-              不改你原本五關，只額外展示：如何設計一款「大家都願意方便提在手上」的環保杯。
-            </p>
-            <button id="btnEcoCupIdea"
-              class="mt-3 w-full px-4 py-3 rounded-2xl bg-slate-900 text-white font-extrabold hover:bg-slate-800">
-              看設計原型
-            </button>
-          </div>
 
         </div>
       </aside>
@@ -433,7 +438,8 @@
         <div class="flex items-center gap-3">
           <div class="w-14 h-14 rounded-3xl bg-amber-100 flex items-center justify-center text-3xl">🥳</div>
           <div>
-            <div class="text-xl font-black text-slate-900">恭喜你完成所有任務！</div>
+            <div class="text-xl font-black text-slate-900">
+            恭喜 <span id="celebrateNick">冒險者</span> 完成所有任務！</div>
             <div class="text-sm text-slate-600 mt-1">你已通關 1～5 關 ✅</div>
           </div>
         </div>
@@ -451,6 +457,65 @@
       </button>
     </div>
   </div>
+    <!-- ✅ Certificate Overlay（完成後證書） -->
+  <div id="certificateOverlay"class="fixed inset-0 z-[30000] hidden items-center justify-center p-6 overflow-y-auto">
+
+    <div class="absolute inset-0 modal-backdrop"></div>
+
+    <div class="relative w-full max-w-2xl rounded-3xl bg-white border border-slate-200 shadow-soft p-8 pt-10 pb-10 pop-overlay">
+
+      <div class="flex items-start justify-between gap-3">
+        <div>
+          <div class="text-xl font-black text-slate-900">✅ Oasis Project 完成證書</div>
+          <div class="text-sm text-slate-600 mt-1">完成 1～5 關學習任務</div>
+        </div>
+        <button id="certClose" class="w-10 h-10 rounded-2xl bg-slate-900 text-white font-black hover:bg-slate-800">✕</button>
+      </div>
+
+      <div class="mt-4 p-5 rounded-3xl bg-gradient-to-br from-emerald-50 via-sky-50 to-amber-50 border border-white/70">
+        <div class="text-sm text-slate-700">授予</div>
+        <div class="mt-1 text-2xl font-black text-slate-900">
+          <span id="certNick">冒險者</span>
+          <span class="text-base font-extrabold text-emerald-700 ml-2" id="certTitle">🌱 新手冒險者</span>
+        </div>
+
+        <div class="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+          <div class="p-3 rounded-2xl bg-white/80 border border-white/70">
+            <div class="text-xs text-slate-500 font-bold">Session ID</div>
+            <div class="font-extrabold text-slate-900" id="certSession">—</div>
+          </div>
+          <div class="p-3 rounded-2xl bg-white/80 border border-white/70">
+            <div class="text-xs text-slate-500 font-bold">完成日期</div>
+            <div class="font-extrabold text-slate-900" id="certDate">—</div>
+          </div>
+        </div>
+
+        <div class="mt-3 p-3 rounded-2xl bg-white/80 border border-white/70 text-sm">
+          <div class="text-xs text-slate-500 font-bold">完成徽章（SBT）</div>
+          <div class="mt-1 text-lg" id="certSBT">🌱 🥤 🛡️ 🔎 🏠</div>
+        </div>
+
+        <div class="mt-3 p-3 rounded-2xl bg-white/80 border border-white/70 text-sm">
+          <div class="text-xs text-slate-500 font-bold">最終 EcoCoin</div>
+          <div class="font-extrabold text-slate-900"><span id="certEco">0</span></div>
+        </div>
+
+        <div class="mt-3 text-xs text-slate-500">
+          證書用途：展示學習完成與基礎資安/反詐概念掌握（錢包 / NFT / RWA）。
+        </div>
+      </div>
+
+      <div class="mt-4 grid grid-cols-2 gap-3">
+        <button id="certPrint" class="px-4 py-3 rounded-2xl bg-slate-900 text-white font-extrabold hover:bg-slate-800">
+          列印 / 存成 PDF
+        </button>
+        <button id="certOk" class="px-4 py-3 rounded-2xl bg-emerald-600 text-white font-extrabold hover:bg-emerald-700">
+          我知道了
+        </button>
+      </div>
+    </div>
+  </div>
+
 
   <!-- Stage4 Zoom Modal -->
   <div id="zoomModal" class="fixed inset-0 hidden items-center justify-center p-6">
@@ -468,19 +533,77 @@
     </div>
   </div>
 
-<script>
+<script>/* =========================
+   DOM Helpers (MUST be first)
+========================= */
+const $ = (id) => document.getElementById(id);
+function setText(id, t){ const el = $(id); if(el) el.textContent = t; }
+function show(el){ if(!el) return; el.classList.remove("hidden"); el.classList.add("flex"); }
+function hide(el){ if(!el) return; el.classList.add("hidden"); el.classList.remove("flex"); }
+
+/* =========================
+   DOM Ready (safe init)
+========================= */
+document.addEventListener("DOMContentLoaded", () => {
+  try{ if(typeof applyI18N === "function") applyI18N(); }catch(e){}
+});
+
+const LANG_KEY = "OASIS_LANG";
+let CURRENT_LANG = localStorage.getItem(LANG_KEY) || "zh";
+
+const I18N = {
+  zh: { reset:"重置進度", confirmReset:"確定要重置進度與 EcoCoin 嗎？（不會清除暱稱）", resetDone:"已重置 ✅" },
+  en: { reset:"Reset Progress", confirmReset:"Reset progress and EcoCoin? (Nickname will NOT be cleared.)", resetDone:"Reset complete ✅" },
+  ja: { reset:"進捗をリセット", confirmReset:"進捗とEcoCoinをリセットしますか？（ニックネームは消えません）", resetDone:"リセット完了 ✅" },
+  ko: { reset:"진행 초기화", confirmReset:"진행도와 EcoCoin을 초기화할까요? (닉네임은 삭제되지 않습니다.)", resetDone:"초기화 완료 ✅" }
+};
+
+function t(key){
+  return (I18N[CURRENT_LANG] && I18N[CURRENT_LANG][key]) || I18N.zh[key] || key;
+}
+
+function applyI18N(){
+  const btnReset = document.getElementById("btnReset");
+  if(btnReset) btnReset.textContent = t("reset");
+}
+
+function setLanguage(lang){
+  CURRENT_LANG = lang;
+  localStorage.setItem(LANG_KEY, lang);
+  applyI18N();
+}
+
 /* =========================
    ✅ Nickname (input once)
 ========================= */
+function genTitle(name){
+  const n = (name || "").trim();
+  const hasEN = /[A-Za-z]/.test(n);
+  const hasEmoji = /[\u{1F300}-\u{1FAFF}]/u.test(n);
+
+  if(hasEmoji) return "🎭 氣氛製造者";
+  if(hasEN) return "🧭 探索型冒險者";
+  if(n.length <= 2) return "⚡ 行動派玩家";
+  if(n.length >= 5) return "🧠 理性分析者";
+  return "🌿 穩健學習者";
+}
+
+function genPlayerId(){
+  const s = Math.random().toString(16).slice(2, 6).toUpperCase();
+  const t = Math.random().toString(16).slice(2, 6).toUpperCase();
+  return `${s}-${t}`;
+}
+
 const NICK_KEY = "oasis_nickname_v1";
 
 function getNick(){
-  const n = localStorage.getItem(NICK_KEY);
+  const n = sessionStorage.getItem(NICK_KEY);
   return (n && n.trim()) ? n.trim() : "";
 }
 function setNick(n){
-  localStorage.setItem(NICK_KEY, (n || "").trim());
+  sessionStorage.setItem(NICK_KEY, (n || "").trim());
 }
+
 function applyNickToUI(){
   const n = getNick() || "冒險者";
   const top = document.getElementById("topNick");
@@ -491,6 +614,8 @@ function showStartOverlay(){
   if(!ov) return;
   ov.classList.remove("hidden");
   ov.classList.add("flex");
+  setText("ecoCoin", "0");
+}
 
   const input = document.getElementById("nicknameInput");
   const prev  = document.getElementById("nickPreview");
@@ -504,7 +629,7 @@ function showStartOverlay(){
       if(prev) prev.textContent = input.value.trim() || "冒險者";
     }, { passive:true });
   }
-}
+
 function hideStartOverlay(){
   const ov = document.getElementById("startOverlay");
   if(!ov) return;
@@ -536,14 +661,59 @@ function loadState(){
   }catch(e){ return defaultState(); }
 }
 function saveState(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
+function resetGameState(){
+  state = defaultState();   // 回到初始：eco=0、completed全false、celebratedAllDone=false
+  saveState();              // 存回 localStorage
+  renderEco();              // UI上的EcoCoin歸0
+  updateBadges();           // 進度/按鈕/徽章全回到未完成
+}
+
 
 /* =========================
    DOM Helpers
 ========================= */
-const $ = (id) => document.getElementById(id);
-function setText(id, t){ $(id).textContent = t; }
-function show(el){ el.classList.remove("hidden"); el.classList.add("flex"); }
-function hide(el){ el.classList.add("hidden"); el.classList.remove("flex"); }
+/* =========================
+   ✅ Certificate
+========================= */
+function allDone(){
+  return [1,2,3,4,5].every(k => state.completed[k]);
+}
+
+function renderCertificate(){
+  const nick = getNick() || "冒險者";
+  setText("certNick", nick);
+
+  // 如果你有做稱號函式（前面說的 getTitleByNick），就用它；沒有就給預設
+  const title = (typeof getTitleByNick === "function") ? getTitleByNick(nick) : "🌿 綠洲學習者";
+  setText("certTitle", title);
+
+  // Session（如果你有做 getSessionId）
+  const sid = (typeof getSessionId === "function") ? (getSessionId() || "—") : "—";
+  setText("certSession", sid);
+
+  // 日期
+  const d = new Date();
+  setText("certDate", d.toLocaleString("zh-TW"));
+
+  // EcoCoin（用 state.eco）
+  setText("certEco", String(state.eco));
+
+  // 徽章顯示（依完成狀態）
+  const icons = {1:"🌱",2:"🥤",3:"🛡️",4:"🔎",5:"🏠"};
+  const sbt = [1,2,3,4,5].map(i => state.completed[i] ? icons[i] : "⬜").join(" ");
+  setText("certSBT", sbt);
+}
+
+function openCertificate(){
+  renderCertificate();
+  show($("certificateOverlay"));
+}
+
+function closeCertificate(){
+  hide($("certificateOverlay"));
+}
+
+
 
 /* =========================
    EcoCoin
@@ -741,6 +911,7 @@ function updateBadges(){
   setSBT("sbt2", c[2], "🥤");
   setSBT("sbt3", c[3], "🛡️");
   setSBT("sbt4", c[4], "🔎");
+  setSBT("sbt5", c[5], "🏠");
 }
 function markCompleted(level){
   if(!state.completed[level]){
@@ -801,7 +972,7 @@ function jumpTo(nextLevel, completedLevel){
     4: "提示：第 4 關先用放大鏡看細節，再選最可疑的一筆。",
     5: "提示：第 5 關通關會有 YA 音效。"
   };
-  setText("jumpTitle", `做得好！前往第 ${nextLevel} 關！`);
+  setText("jumpTitle", `做得好，${nick()}！前往第 ${nextLevel} 關！`);
   setText("jumpSub", "你可以看完再繼續");
   $("jumpTip").textContent = tips[nextLevel] || "一起把概念用遊戲學會。";
   $("jumpLearn").innerHTML = learnHTML(completedLevel || (nextLevel-1));
@@ -814,7 +985,7 @@ function jumpTo(nextLevel, completedLevel){
   if(jumpAutoTimer) clearTimeout(jumpAutoTimer);
   jumpAutoTimer = setTimeout(()=>{
     if(jumpNextFn) jumpNextFn();
-  }, 2600);
+  }, 60000);
 }
 $("jumpGo").addEventListener("click", ()=>{
   if(jumpAutoTimer) clearTimeout(jumpAutoTimer);
@@ -833,6 +1004,8 @@ function clearParty(){
 function openCelebrate(){
   clearParty();
   show($("celebrateOverlay"));
+  const cn = document.getElementById("celebrateNick");
+  if(cn) cn.textContent = nick();
   startPartyRain();
   partyTimer = setTimeout(()=> closeCelebrate(), 5200);
 }
@@ -842,6 +1015,14 @@ function closeCelebrate(){
 }
 $("celebrateClose").addEventListener("click", closeCelebrate);
 $("celebrateOk").addEventListener("click", closeCelebrate);
+// Certificate overlay buttons
+$("certClose").addEventListener("click", closeCertificate);
+$("certOk").addEventListener("click", closeCertificate);
+$("certPrint").addEventListener("click", ()=>{
+  openCertificate(); // 確保顯示中
+  window.print();
+});
+
 
 function startPartyRain(){
   const rain = $("celebrateRain");
@@ -938,13 +1119,15 @@ function stage1(){
     },
   ];
 
+  const N = nick();
   const dramaLines = [
-    { who:"koko", text:"美美，我看到一個『限時快領』連結，點進去跳出錢包視窗。" },
-    { who:"meimei", text:"先停。它要你同意什麼？有沒有寫無限額？" },
-    { who:"koko", text:"有耶，寫無限額授權，還說比較方便。" },
-    { who:"meimei", text:"那就先拒絕。先關掉、去官方確認再說。" },
-    { who:"koko", text:"好！我懂了：看不懂就先不要簽。" }
-  ];
+  { who:"koko", text:`美美，${N} 看到一個『限時快領』連結，點進去跳出錢包視窗。` },
+  { who:"meimei", text:`${N} 先停。它要你同意什麼？有沒有寫無限額？` },
+  { who:"koko", text:"有耶，寫無限額授權，還說比較方便。" },
+  { who:"meimei", text:"那就先拒絕。先關掉、去官方確認再說。" },
+  { who:"koko", text:`好！${N} 懂了：看不懂就先不要簽。` }
+];
+
 
   bodyHTML(`
     <div class="mt-2 p-4 rounded-2xl blkA">
@@ -1987,28 +2170,41 @@ function stage5(){
     const idx = Number(btn.dataset.idx);
     if(answered[idx]) return;
 
-    answered[idx] = true;
     const chooseYes = btn.dataset.ans === "yes";
-    const ok = chooseYes === items[idx].isRWA;
+const ok = chooseYes === items[idx].isRWA;
 
-    const out = $("rwaDone"+idx);
-    out.classList.remove("hidden");
-    out.textContent = ok ? "✅ 正確" : "❗ 再想一下";
-    out.className = ok ? "mt-3 text-sm font-extrabold text-emerald-700" : "mt-3 text-sm font-extrabold text-sky-700";
+const out = $("rwaDone"+idx);
+out.classList.remove("hidden");
 
-    btn.parentElement.querySelectorAll("button").forEach(b=>{
-      b.disabled = true;
-      b.className = b.className + " opacity-70 cursor-not-allowed";
-    });
+if(ok){
+  // ✅ 答對才鎖定
+  answered[idx] = true;
+  score++;
+  sfxGood();
 
-    if(ok){
-      score++;
-      sfxGood();
-      setHint(true, items[idx].why);
-    }else{
-      sfxEncourage();
-      setHint(false, items[idx].why);
-    }
+  out.textContent = "✅ 正確";
+  out.className = "mt-3 text-sm font-extrabold text-emerald-700";
+
+  // 鎖定這一題
+  btn.parentElement.querySelectorAll("button").forEach(b=>{
+    b.disabled = true;
+    b.classList.add("opacity-70","cursor-not-allowed");
+  });
+
+  setHint(true, items[idx].why);
+
+}else{
+  // ❗答錯不鎖，允許再選
+  sfxEncourage();
+
+  out.textContent = "❗ 再想一下（可以重新選）";
+  out.className = "mt-3 text-sm font-extrabold text-sky-700";
+
+  setHint(false, items[idx].why);
+}
+
+setText("rwaScore", String(score));
+
     setText("rwaScore", String(score));
 
     const doneCount = answered.filter(Boolean).length;
@@ -2047,14 +2243,19 @@ function stage5(){
   };
 
   $("btnFinish5").onclick = ()=>{
-    if(!redeemed) return;
-    addEco(50, "level5_reward");
-    markCompleted(5);
+  if(!redeemed) return;
+  addEco(50, "level5_reward");
+  markCompleted(5);
 
-    sfxYA();
-    closeModal();
-    openCelebrate();
-  };
+  sfxYA();
+  closeModal();
+  openCelebrate();
+
+  // ✅ 完成後顯示證書（延遲一下，避免與恭喜視窗重疊）
+  setTimeout(()=>{
+    openCertificate();
+  }, 700);
+};
 }
 
 /* =========================
@@ -2165,13 +2366,15 @@ $("modalClose").addEventListener("click", closeModal);
 
 $("btnReset").addEventListener("click", ()=>{
   stopTTS();
-  if(confirm("確定要重置進度與 EcoCoin 嗎？（不會清除暱稱）")){
+  if(confirm(t("confirmReset"))){
     localStorage.removeItem(STORAGE_KEY);
     state = defaultState();
     saveState();
     renderEco();
     updateBadges();
-    alert("已重置 ✅");
+    alert(t("resetDone"))
+    sessionStorage.removeItem(NICK_KEY);
+    showStartOverlay();
   }
 });
 
@@ -2209,22 +2412,39 @@ if(nickInput && nickPrev){
 
 if(startBtn){
   startBtn.addEventListener("click", ()=>{
-    ensureAudio();
-    const n = normalizeNick(nickInput ? nickInput.value : "");
-    if(!n){
-      if(nickErr){
-        nickErr.classList.remove("hidden");
-        nickErr.textContent = "請先輸入暱稱再開始～";
-      }
-      sfxEncourage();
-      return;
+  ensureAudio();
+  const n = normalizeNick(nickInput ? nickInput.value : "");
+  if(!n){
+    if(nickErr){
+      nickErr.classList.remove("hidden");
+      nickErr.textContent = "請先輸入暱稱再開始～";
     }
-    setNick(n);
-    applyNickToUI();
-    hideStartOverlay();
-    sfxLevelUp();
-  });
+    sfxEncourage();
+    return;
 }
+  
+
+ resetGameState();
+
+
+  setNick(n);
+  const pt = document.getElementById("playerTitle");
+  if(pt) pt.textContent = genTitle(n);
+
+ const pid = document.getElementById("playerId");
+ if(pid) pid.textContent = genPlayerId();
+
+  applyNickToUI();
+  hideStartOverlay();
+  sfxLevelUp();
+});
+}
+function nick(){
+  return getNick() || "冒險者";
+}
+
+
+
 
 const btnChangeNick = document.getElementById("btnChangeNick");
 if(btnChangeNick){
@@ -2243,12 +2463,16 @@ renderEco();
 updateBadges();
 applyNickToUI();
 
-// 首次：如果沒有暱稱就要求輸入一次
-if(!getNick()){
-  showStartOverlay();
-} else {
-  hideStartOverlay();
-}
+
+// ✅ 每次載入都當成新遊戲
+state = defaultState();
+saveState();
+renderEco();
+updateBadges();
+
+// ✅ 每次載入都要求重新輸入暱稱
+sessionStorage.removeItem(NICK_KEY);
+showStartOverlay();
 </script>
 
 </body>
